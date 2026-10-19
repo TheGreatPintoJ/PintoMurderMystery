@@ -1,9 +1,11 @@
 plugins {
     id("java-library")
     id("com.gradleup.shadow") version "9.6.1"
+    id("com.diffplug.spotless") version "6.25.0"
 }
 
 repositories {
+    gradlePluginPortal()
     mavenCentral()
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
 }
@@ -16,9 +18,34 @@ java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
 }
 
+spotless {
+    java {
+        googleJavaFormat("1.28.0").aosp()
+        target(
+            "src/main/java/**/*.java",
+            "src/legacy/java/**/*.java",
+            "src/modern/java/**/*.java",
+        )
+        removeUnusedImports()
+        formatAnnotations()
+        trimTrailingWhitespace()
+        toggleOffOn("// @formatter:off", "// @formatter:on")
+    }
+}
+
 tasks {
+    compileJava {
+        dependsOn("spotlessApply")
+    }
+
     build {
         dependsOn(shadowJar)
+    }
+
+    shadowJar {
+        // relocate("com.fasterxml.jackson", "me.pintoadmin.fabricmoddownloader.shaded.com.fasterxml.jackson")
+        // relocate("org.yaml.snakeyaml", "me.pintoadmin.fabricmoddownloader.shaded.org.yaml.snakeyaml")
+        archiveClassifier.set("")
     }
 
     processResources {

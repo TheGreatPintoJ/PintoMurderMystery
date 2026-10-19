@@ -1,0 +1,44 @@
+isolatedplayerlist: false # whether player's not actively playing will show up on the tablist/playerlist
+bridge1: # world name - can be anything
+  enabled: false
+
+  spawnlocations:
+    - x: X # XYZ coordinates of the spawn location
+      y: X
+      z: X
+      fx: X # XZ coordinates for the player to be facing
+      fz: X
+    - x: X
+      y: X
+      z: X
+      fx: X
+      fz: X
+    - x: X
+      y: X
+      z: X
+      fx: X
+      fz: X
+    - x: X
+      y: X
+      z: X
+      fx: X
+      fz: X
+
+  endlocation: # location that the players will be teleported to after the game
+    world: lobby
+    x: 0
+    y: 64
+    z: 0
+
+  graceperiod: 15 # Amount of time between the 'start' of the game and when roles get assigned (in seconds)
+  murderers: 2 # Number of players per team. 1 for duels, 2 for duos, etc.
+  maxplayers: 16
+
+  coinstobow: 10 # Number of coins a player needs to get a bow
+  bowinstashoot: false # If left-clicking with a bow should shoot instantly with a perfect trajectory
+  deathwater: true # If the player takes damage while in water
+
+  candropitems: false # whether players are allowed to drop items
+
+  gamerules: # Set boolean gamerules
+    fallDamage: false

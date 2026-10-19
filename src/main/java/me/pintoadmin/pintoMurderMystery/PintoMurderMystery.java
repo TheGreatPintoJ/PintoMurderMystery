@@ -1,16 +1,62 @@
 package me.pintoadmin.pintoMurderMystery;
 
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+import org.bukkit.configuration.file.*;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class PintoMurderMystery extends JavaPlugin {
+    private final Map<String, MurderMysteryGame> games = new HashMap<>(); // world to game instance
+
+    public ConfigLoader configLoader;
 
     @Override
     public void onEnable() {
-        // Plugin startup logic
+        // Save default config
+        File configFile = new File(getDataFolder() + "/config.yml");
+        if (!configFile.exists()) {
+            saveResource("config.yml", false);
+        }
+
+        // Load classes
+        FileConfiguration config = getConfig();
+        configLoader = new ConfigLoader(this, config);
+
+        // Load config games
+        configLoader.start();
+
+        // Initialize Game objects for each game/world
+        for (String gameName : configLoader.getEnabledGames()) {
+            getLogger().warning("Enabled games: " + configLoader.getEnabledGames());
+            games.put(gameName, new MurderMysteryGame(gameName));
+        }
+
+        // Listeners
+        //        gameListeners = new GameListeners(this);
+        //        worldChangeListener = new WorldChangeListener(this);
+        //        blockBreakListener = new BlockBreakListener(this);
+        //        blockPlaceListener = new BlockPlaceListener(this);
     }
 
     @Override
     public void onDisable() {
         // Plugin shutdown logic
+    }
+
+    public void debug(String... messages) {
+        String finalString = "[DEBUG]";
+        for (String msg : messages) {
+            finalString += " " + msg;
+        }
+        getLogger().info(finalString);
+    }
+
+    public MurderMysteryGame getGame(String name) {
+        return games.get(name);
+    }
+
+    public static PintoMurderMystery getInstance() {
+        return getPlugin(PintoMurderMystery.class);
     }
 }
