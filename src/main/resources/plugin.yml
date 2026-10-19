@@ -5,3 +5,5 @@ main: me.pintoadmin.pintoMurderMystery.PintoMurderMystery
 api-version: '26.3'
 
 authors: [ PintoJ ]
+softdepend:
+  - Multiverse-Core

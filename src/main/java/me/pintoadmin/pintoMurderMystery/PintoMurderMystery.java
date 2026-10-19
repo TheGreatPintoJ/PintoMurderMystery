@@ -11,6 +11,8 @@ public final class PintoMurderMystery extends JavaPlugin {
 
     public ConfigLoader configLoader;
 
+    private GameListeners gameListeners;
+
     @Override
     public void onEnable() {
         // Save default config
@@ -33,7 +35,7 @@ public final class PintoMurderMystery extends JavaPlugin {
         }
 
         // Listeners
-        //        gameListeners = new GameListeners(this);
+        gameListeners = new GameListeners(this);
         //        worldChangeListener = new WorldChangeListener(this);
         //        blockBreakListener = new BlockBreakListener(this);
         //        blockPlaceListener = new BlockPlaceListener(this);

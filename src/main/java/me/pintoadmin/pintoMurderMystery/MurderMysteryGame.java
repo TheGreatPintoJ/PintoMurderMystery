@@ -7,8 +7,10 @@ import org.bukkit.*;
 import org.bukkit.configuration.*;
 import org.bukkit.configuration.file.*;
 import org.bukkit.entity.*;
+import org.bukkit.event.entity.*;
 import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.*;
+import org.bukkit.potion.*;
 import org.bukkit.profile.*;
 import org.bukkit.scheduler.*;
 import org.bukkit.scoreboard.*;
@@ -24,8 +26,6 @@ public class MurderMysteryGame {
     private final World world;
     private final boolean isolatePlayerlists;
     private final Scoreboard scoreboard;
-    private final Team hideNameTeam;
-    private final Team murdererTeam;
 
     public enum PlayerState {
         PLAYING,
@@ -41,6 +41,8 @@ public class MurderMysteryGame {
 
     public final Map<Player, PlayerState> playerStates = new HashMap<>();
     public final Map<Player, PlayerRole> playerRoles = new HashMap<>();
+    private final Team hideNameTeam;
+    private final Team murdererTeam;
     private final List<BukkitTask> runningTasks = new ArrayList<>();
 
     public final ItemStack knife;
@@ -52,8 +54,10 @@ public class MurderMysteryGame {
     private int coinsToBow;
     private boolean bowInstaShoot;
     private boolean deathWater;
+    private boolean canDropItems;
 
-    private Map<Vector, Integer[]> spawnLocations =
+    private Location endLocation;
+    private Map<Vector, Double[]> spawnLocations =
             new HashMap<>(); // List of spawn location vectors to facing coords (v[0]=x, v[1]=z)
     //        private boolean sheriffWrongGuessKills = true;
 
@@ -91,19 +95,27 @@ public class MurderMysteryGame {
         coinsToBow = config.getInt("coinstobow", 10);
         bowInstaShoot = config.getBoolean("bowinstashoot", false);
         deathWater = config.getBoolean("deathwater", true);
+        canDropItems = config.getBoolean("candrop", false);
+
+        endLocation =
+                getVector("endlocation")
+                        .toLocation(Bukkit.getWorld(config.getString("endlocation.world")));
 
         try {
             List<Map<?, ?>> spawnLocations = config.getMapList("spawnlocations");
             for (Map<?, ?> map : spawnLocations) {
-                float x = (float) map.get("x");
-                float y = (float) map.get("y");
-                float z = (float) map.get("z");
-                int fx = (int) map.get("fx");
-                int fz = (int) map.get("fz");
-                this.spawnLocations.put(new Vector(x, y, z), new Integer[] {fx, fz});
+                double x = (double) map.get("x");
+                double y = (double) map.get("y");
+                double z = (double) map.get("z");
+                double fx = (double) map.get("fx");
+                double fz = (double) map.get("fz");
+                this.spawnLocations.put(new Vector(x, y, z), new Double[] {fx, fz});
             }
         } catch (ClassCastException e) {
-            plugin.getLogger().severe("Fix your config! Could not retrieve spawn locations");
+            plugin.getLogger()
+                    .severe(
+                            "Fix your config! Could not retrieve spawn locations: "
+                                    + e.getMessage());
         }
     }
 
@@ -114,21 +126,24 @@ public class MurderMysteryGame {
                 playerStates.keySet().stream()
                         .filter(u -> playerStates.get(u) == PlayerState.PLAYING)
                         .toList();
-        Map.Entry<Vector, Integer[]>[] possibleLocations =
+        Map.Entry<Vector, Double[]>[] possibleLocations =
                 spawnLocations.entrySet().toArray(new Map.Entry[0]);
         for (Player player : playingPlayers) {
             // Change skins and hide names
             try {
                 PlayerProfile profile = player.getPlayerProfile();
                 PlayerTextures textures = profile.getTextures();
-                textures.setSkin(new URI("https://textures.minecraft.net/texture/538d5d3d842fe200ae180d28c54238861d581c8629e42ac24c0d4dba3f5aeab4").toURL());
-            } catch (URISyntaxException | MalformedURLException e){
-                plugin.getLogger().severe("Could not load skin: "+e.getMessage());
+                textures.setSkin(
+                        new URI(
+                                        "https://textures.minecraft.net/texture/538d5d3d842fe200ae180d28c54238861d581c8629e42ac24c0d4dba3f5aeab4")
+                                .toURL());
+            } catch (URISyntaxException | MalformedURLException e) {
+                plugin.getLogger().severe("Could not load skin: " + e.getMessage());
                 e.printStackTrace();
             }
 
             Random random = new Random();
-            Map.Entry<Vector, Integer[]> randomEntry =
+            Map.Entry<Vector, Double[]> randomEntry =
                     possibleLocations[random.nextInt(possibleLocations.length)];
             Location loc = randomEntry.getKey().toLocation(world);
             Vector facing =
@@ -145,6 +160,7 @@ public class MurderMysteryGame {
         runningTasks.add(
                 new BukkitRunnable() {
                     int countdown = gracePeriod;
+
                     @Override
                     public void run() {
                         if (countdown > 0) {
@@ -203,7 +219,7 @@ public class MurderMysteryGame {
                                             0);
                                     murdererTeam.addEntry(player.getName());
                                     player.getInventory().addItem(knife);
-                                } else if (playerRoles.get(player) == null){
+                                } else if (playerRoles.get(player) == null) {
                                     player.sendTitle(
                                             ChatColor.AQUA + "" + ChatColor.BOLD + "INNOCENT",
                                             ChatColor.DARK_GRAY
@@ -228,10 +244,37 @@ public class MurderMysteryGame {
 
     public void end(boolean force) {
         // Reveal murderers
-        List<Player> murderers = playerRoles.keySet().stream().filter(p -> playerRoles.get(p) == PlayerRole.MURDERER).toList();
-
+        List<Player> murderers =
+                playerRoles.keySet().stream()
+                        .filter(p -> playerRoles.get(p) == PlayerRole.MURDERER)
+                        .toList();
+        murderers.forEach(
+                p ->
+                        p.addPotionEffect(
+                                new PotionEffect(PotionEffectType.GLOWING, 30, 1, false, false)));
         // Announce who won
+        if (murderers.isEmpty()) {
+            List<Player> livingPlayers =
+                    playerRoles.keySet().stream()
+                            .filter(p -> playerRoles.get(p) != PlayerRole.MURDERER)
+                            .toList();
+            for (Player player : livingPlayers) {
+                player.sendTitle(
+                        ChatColor.GREEN + "INNOCENTS WIN",
+                        ChatColor.GRAY + "The Innocents have taken care of the Murderers",
+                        0,
+                        100,
+                        0);
+            }
+        }
         // Teleport all players to end after 15s
+        runningTasks.add(
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        for (Player player : playerRoles.keySet()) player.teleport(endLocation);
+                    }
+                }.runTaskLater(plugin, force ? 0L : 300L));
     }
 
     public void join(Player player) {
@@ -244,6 +287,11 @@ public class MurderMysteryGame {
         // Join messages
 
         // Check if game full -> start game
+        if (playerStates.keySet().stream()
+                        .filter(p -> playerStates.get(p) == PlayerState.PLAYING)
+                        .toList()
+                        .size()
+                >= maxPlayers) start();
     }
 
     public void leave(Player player, World toWorld) {
@@ -253,14 +301,35 @@ public class MurderMysteryGame {
         // if player was playing, check if all murderers gone
     }
 
-    public void onDeath(Player player) {
+    public void onDeath(Player player, PlayerDeathEvent event) {
         // Set to spectate
         playerStates.put(player, PlayerState.SPECTATING);
+        event.setDeathMessage(null);
+        event.getDrops().clear();
+        Location loc = player.getLocation();
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                player.spigot().respawn();
+                player.setGameMode(GameMode.SPECTATOR);
+                player.teleport(loc);
+            }
+        }.runTask(plugin);
     }
 
     /*
     public void newSheriff(Player player)
      */
+
+    // Game properties getters
+    public boolean canDrop() {
+        return canDropItems;
+    }
+
+    public String getName() {
+        return name;
+    }
 
     // Game status methods
     public boolean isPlaying() {
@@ -272,5 +341,12 @@ public class MurderMysteryGame {
     }
 
     // Utility methods
-
+    private Vector getVector(String path) {
+        ConfigurationSection section = config.getConfigurationSection(path);
+        if (section == null) return null;
+        double x = section.getDouble("x");
+        double y = section.getDouble("y");
+        double z = section.getDouble("z");
+        return new Vector(x, y, z);
+    }
 }
