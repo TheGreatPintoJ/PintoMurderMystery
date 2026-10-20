@@ -142,6 +142,8 @@ public class MurderMysteryGame {
                 e.printStackTrace();
             }
 
+            player.getInventory().clear();
+
             Random random = new Random();
             Map.Entry<Vector, Double[]> randomEntry =
                     possibleLocations[random.nextInt(possibleLocations.length)];
@@ -166,10 +168,10 @@ public class MurderMysteryGame {
                         if (countdown > 0) {
                             for (Player player : playingPlayers) {
                                 player.sendTitle(
-                                        "",
-                                        countdown + " seconds until roles are revealed",
+                                        String.valueOf(countdown),
+                                        "seconds until roles are revealed",
                                         0,
-                                        20,
+                                        25,
                                         0);
                             }
                             countdown--;
@@ -200,15 +202,17 @@ public class MurderMysteryGame {
                                     List<Player> otherMurderers = new ArrayList<>(murderers);
                                     otherMurderers.remove(player);
                                     String companionString =
-                                            murderers.size() > 1
+                                            murderers.size() == 2
                                                     ? "Your companion is: "
                                                             + otherMurderers.getFirst().getName()
-                                                    : "Your companions are: "
-                                                            + otherMurderers.stream()
-                                                                    .map(Player::getName)
-                                                                    .toString()
-                                                                    .replace("[", "")
-                                                                    .replace("]", "");
+                                                    : murderers.size() >= 3
+                                                            ? "Your companions are: "
+                                                                    + otherMurderers.stream()
+                                                                            .map(Player::getName)
+                                                                            .toString()
+                                                                            .replace("[", "")
+                                                                            .replace("]", "")
+                                                            : "";
                                     player.sendTitle(
                                             ChatColor.DARK_RED + "" + ChatColor.BOLD + "MURDERER",
                                             ChatColor.DARK_GRAY
@@ -222,8 +226,7 @@ public class MurderMysteryGame {
                                 } else if (playerRoles.get(player) == null) {
                                     player.sendTitle(
                                             ChatColor.AQUA + "" + ChatColor.BOLD + "INNOCENT",
-                                            ChatColor.DARK_GRAY
-                                                    + "Survive and take care of the murderer",
+                                            ChatColor.DARK_GRAY + "Survive for as long as possible",
                                             0,
                                             60,
                                             0);
@@ -243,25 +246,36 @@ public class MurderMysteryGame {
     }
 
     public void end(boolean force) {
+        playing = false;
+        ended = true;
         // Reveal murderers
-        List<Player> murderers =
+        List<Player> livingMurderers =
                 playerRoles.keySet().stream()
-                        .filter(p -> playerRoles.get(p) == PlayerRole.MURDERER)
+                        .filter(
+                                p ->
+                                        playerRoles.get(p) == PlayerRole.MURDERER
+                                                && playerStates.get(p) == PlayerState.PLAYING)
                         .toList();
-        murderers.forEach(
+        livingMurderers.forEach(
                 p ->
                         p.addPotionEffect(
-                                new PotionEffect(PotionEffectType.GLOWING, 30, 1, false, false)));
+                                new PotionEffect(PotionEffectType.GLOWING, 300, 1, false, false)));
         // Announce who won
-        if (murderers.isEmpty()) {
-            List<Player> livingPlayers =
-                    playerRoles.keySet().stream()
-                            .filter(p -> playerRoles.get(p) != PlayerRole.MURDERER)
-                            .toList();
-            for (Player player : livingPlayers) {
+        List<Player> allPlayers = playerRoles.keySet().stream().toList();
+        if (livingMurderers.isEmpty()) {
+            for (Player player : allPlayers) {
                 player.sendTitle(
                         ChatColor.GREEN + "INNOCENTS WIN",
-                        ChatColor.GRAY + "The Innocents have taken care of the Murderers",
+                        ChatColor.GRAY + "The Murderers have been stopped",
+                        0,
+                        100,
+                        0);
+            }
+        } else {
+            for (Player player : allPlayers) {
+                player.sendTitle(
+                        ChatColor.DARK_RED + "MURDERERS WIN",
+                        ChatColor.GRAY + "The Murderers have killed all of the Innocents",
                         0,
                         100,
                         0);
@@ -272,41 +286,77 @@ public class MurderMysteryGame {
                 new BukkitRunnable() {
                     @Override
                     public void run() {
-                        for (Player player : playerRoles.keySet()) player.teleport(endLocation);
+                        for (Player player : allPlayers) {
+                            player.teleport(endLocation);
+                            player.setGameMode(GameMode.SURVIVAL);
+                        }
+                        ended = false;
                     }
                 }.runTaskLater(plugin, force ? 0L : 300L));
     }
 
     public void join(Player player) {
-        // if playing add as spec
-        if (playing) playerStates.put(player, PlayerState.SPECTATING);
-        // if not add as player
-        else playerStates.put(player, PlayerState.PLAYING);
+        // if not playing add as player
+        if (!playing) {
+            playerStates.put(player, PlayerState.PLAYING);
+            // Show/hide players (isolatedplayerlist)
+            // Join messages
+            for (Player oldPlayer : player.getWorld().getPlayers()) {
+                oldPlayer.sendMessage(
+                        player.getName()
+                                + ChatColor.YELLOW
+                                + " has joined the game "
+                                + ChatColor.AQUA
+                                + "(%s/%s)"
+                                        .formatted(
+                                                player.getWorld().getPlayers().size(), maxPlayers));
+            }
 
-        // Show/hide players (isolatedplayerlist)
-        // Join messages
-
-        // Check if game full -> start game
-        if (playerStates.keySet().stream()
-                        .filter(p -> playerStates.get(p) == PlayerState.PLAYING)
-                        .toList()
-                        .size()
-                >= maxPlayers) start();
+            // Check if game full -> start game
+            if (playerStates.keySet().stream()
+                            .filter(p -> playerStates.get(p) == PlayerState.PLAYING)
+                            .toList()
+                            .size()
+                    >= maxPlayers) start();
+            // if so add as spec
+        } else playerStates.put(player, PlayerState.SPECTATING);
+        player.setScoreboard(scoreboard);
     }
 
     public void leave(Player player, World toWorld) {
         // remove player from game
         // Show/hide players (isolatedplayerlist)
         // leave messages
+        for (Player oldPlayer : world.getPlayers()) {
+            if (ended) continue;
+            if (!playing) {
+                oldPlayer.sendMessage(
+                        player.getName()
+                                + ChatColor.YELLOW
+                                + " has left the game "
+                                + ChatColor.AQUA
+                                + String.format("(%s/%s)", world.getPlayers().size(), maxPlayers));
+            } else oldPlayer.sendMessage(player.getName() + ChatColor.YELLOW + " has left");
+        }
         // if player was playing, check if all murderers gone
     }
 
     public void onDeath(Player player, PlayerDeathEvent event) {
+
         // Set to spectate
         playerStates.put(player, PlayerState.SPECTATING);
         event.setDeathMessage(null);
         event.getDrops().clear();
         Location loc = player.getLocation();
+
+        List<Player> livingPlayers =
+                playerStates.keySet().stream()
+                        .filter(
+                                p ->
+                                        playerStates.get(p) == PlayerState.PLAYING
+                                                && playerRoles.get(p) != PlayerRole.MURDERER)
+                        .toList();
+        if (livingPlayers.size() <= murderers) end(false);
 
         new BukkitRunnable() {
             @Override

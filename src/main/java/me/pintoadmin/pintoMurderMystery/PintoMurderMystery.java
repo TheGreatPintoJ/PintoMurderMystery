@@ -4,6 +4,7 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 import org.bukkit.configuration.file.*;
+import org.bukkit.event.*;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class PintoMurderMystery extends JavaPlugin {
@@ -43,7 +44,20 @@ public final class PintoMurderMystery extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
+        for (Map.Entry<String, MurderMysteryGame> entry : games.entrySet()) {
+            String key = entry.getKey();
+            MurderMysteryGame game = entry.getValue();
+            if (game.isPlaying()) {
+                game.end(true);
+            }
+        }
+        // Clear game map
+        games.clear();
+
+        // Unregister all event listeners to prevent memory leaks
+        HandlerList.unregisterAll(gameListeners);
+
+        getLogger().info("PintoMurderMystery plugin disabled and cleaned up");
     }
 
     public void debug(String... messages) {

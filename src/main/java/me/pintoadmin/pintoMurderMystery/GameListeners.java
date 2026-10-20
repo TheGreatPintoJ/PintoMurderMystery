@@ -2,9 +2,12 @@ package me.pintoadmin.pintoMurderMystery;
 
 import static org.bukkit.Bukkit.getServer;
 
+import java.util.*;
 import org.bukkit.*;
+import org.bukkit.block.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.*;
+import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.player.*;
 import org.bukkit.plugin.*;
@@ -16,6 +19,18 @@ public class GameListeners implements Listener {
     public GameListeners(PintoMurderMystery plugin) {
         this.plugin = plugin;
         getServer().getPluginManager().registerEvents(this, plugin);
+    }
+
+    @EventHandler
+    public void onBlockBreakEvent(BlockBreakEvent event) {
+        String worldName = event.getBlock().getWorld().getName();
+        Player player = event.getPlayer();
+        Block block = event.getBlock();
+
+        MurderMysteryGame game = plugin.getGame(worldName);
+        if (game == null) return;
+        if (player.getGameMode() == GameMode.CREATIVE) return;
+        event.setCancelled(true);
     }
 
     @EventHandler
