@@ -11,6 +11,7 @@ import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.player.*;
 import org.bukkit.plugin.*;
+import org.bukkit.scheduler.*;
 import org.bukkit.scoreboard.*;
 
 public class GameListeners implements Listener {
@@ -95,7 +96,12 @@ public class GameListeners implements Listener {
         MurderMysteryGame game = plugin.getGame(player.getWorld().getName());
         if (game != null) {
             event.setJoinMessage(null);
-            game.join(player);
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    game.join(player);
+                }
+            }.runTask(plugin);
         } else plugin.debug("Game is null: " + player.getWorld().getName());
     }
 
@@ -150,6 +156,9 @@ public class GameListeners implements Listener {
     public void onEntityDamagedByEntity(EntityDamageByEntityEvent event) {
         MurderMysteryGame game = plugin.getGame(event.getEntity().getWorld().getName());
         if (game == null) return;
-        if (!(event.getEntity() instanceof Player)) return;
+        if (!(event.getEntity() instanceof Player victim)) return;
+        if (!(event.getDamager() instanceof Player attacker)) return;
+
+        game.damaged(victim, attacker, event);
     }
 }
