@@ -37,9 +37,6 @@ public final class PintoMurderMystery extends JavaPlugin {
 
         // Listeners
         gameListeners = new GameListeners(this);
-        //        worldChangeListener = new WorldChangeListener(this);
-        //        blockBreakListener = new BlockBreakListener(this);
-        //        blockPlaceListener = new BlockPlaceListener(this);
     }
 
     @Override

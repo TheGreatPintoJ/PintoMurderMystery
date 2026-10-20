@@ -1,7 +1,11 @@
 package me.pintoadmin.pintoMurderMystery;
 
+import static java.lang.Math.PI;
+import static java.lang.Math.toRadians;
+
 import java.net.*;
 import java.util.*;
+import java.util.Random;
 import org.bukkit.*;
 import org.bukkit.attribute.*;
 import org.bukkit.configuration.*;
@@ -14,7 +18,9 @@ import org.bukkit.potion.*;
 import org.bukkit.profile.*;
 import org.bukkit.scheduler.*;
 import org.bukkit.scoreboard.*;
+import org.bukkit.util.*;
 import org.bukkit.util.Vector;
+import org.joml.*;
 
 public class MurderMysteryGame {
     // Construction
@@ -419,6 +425,75 @@ public class MurderMysteryGame {
                     .filter(p -> playerStates.get(p) != PlayerState.LEFT)
                     .forEach(p -> p.playSound(p, Sound.ENTITY_PLAYER_HURT, 0.5f, 0.1f));
         }
+    }
+
+    public void tryThrowKnife(Player player) {
+        if (!player.getInventory().getItemInMainHand().isSimilar(knife)) return;
+        if (playerRoles.get(player) != PlayerRole.MURDERER) return;
+        // is murderer, is holding knife
+
+        Location spawnLoc =
+                player.getEyeLocation().clone().add(player.getLocation().getDirection());
+        spawnLoc.setYaw(player.getLocation().getYaw());
+        spawnLoc.setPitch(player.getLocation().getPitch());
+        ItemDisplay sword =
+                world.spawn(
+                        spawnLoc,
+                        ItemDisplay.class,
+                        e -> {
+                            e.setItemStack(knife);
+                            e.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
+                            e.setInterpolationDuration(1);
+                            e.setInterpolationDelay(0);
+                        });
+
+        runningTasks.add(
+                new BukkitRunnable() {
+                    float angle = 0f;
+                    Location eyeLoc = player.getEyeLocation();
+                    float yawRad = (float) toRadians(eyeLoc.getYaw());
+                    Vector direction = player.getLocation().getDirection();
+
+                    @Override
+                    public void run() {
+                        if (!sword.getLocation().getBlock().getType().isAir()) sword.remove();
+                        List<Entity> nearEntities = sword.getNearbyEntities(1, 1, 0.5);
+                        nearEntities.stream()
+                                .filter(e -> e instanceof LivingEntity)
+                                .forEach(e -> ((LivingEntity) e).damage(7, player));
+                        if (sword.isDead()) {
+                            player.getInventory().addItem(knife);
+                            this.cancel();
+                            return;
+                        }
+
+                        //                        sword.teleport(
+                        //                                sword.getLocation()
+                        //                                        .add(
+                        //                                                direction.divide(
+                        //                                                        new Vector(2, 2,
+                        // 2)))); // Movement speed
+
+                        angle += (float) PI / 3; // Rotation speed
+                        if (angle >= PI * 2) {
+                            angle = 0f;
+                        }
+
+
+                        // Construct a raw 4x4 matrix
+                        Vector3f pivot = new Vector3f(-0.125f, -0.125f, 0.0f);
+                        Matrix4f matrix = new Matrix4f().identity() .translate(pivot)
+                                        .rotateZ(angle)
+                                        .translate(-pivot.x, -pivot.y, -pivot.z)
+                                                .rotateY(-yawRad);
+
+                        sword.setTransformationMatrix(matrix);
+
+                        sword.setInterpolationDelay(0);
+                        sword.setInterpolationDuration(1);
+                    }
+                }.runTaskTimer(plugin, 0L, 1L));
+        player.getInventory().remove(knife);
     }
 
     /*

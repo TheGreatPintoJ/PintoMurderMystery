@@ -9,6 +9,7 @@ import org.bukkit.entity.*;
 import org.bukkit.event.*;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
+import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
 import org.bukkit.plugin.*;
 import org.bukkit.scheduler.*;
@@ -160,5 +161,15 @@ public class GameListeners implements Listener {
         if (!(event.getDamager() instanceof Player attacker)) return;
 
         game.damaged(victim, attacker, event);
+    }
+
+    @EventHandler
+    public void onRightClickAir(PlayerInteractEvent event) {
+        Player player = event.getPlayer();
+        MurderMysteryGame game = plugin.getGame(player.getWorld().getName());
+        if (game == null) return;
+        if (!event.getAction().name().contains("RIGHT_CLICK")) return;
+
+        game.tryThrowKnife(player);
     }
 }
