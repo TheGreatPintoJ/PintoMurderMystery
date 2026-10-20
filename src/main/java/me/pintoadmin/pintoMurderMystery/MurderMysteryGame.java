@@ -432,13 +432,9 @@ public class MurderMysteryGame {
         if (playerRoles.get(player) != PlayerRole.MURDERER) return;
         // is murderer, is holding knife
 
-        Location spawnLoc =
-                player.getEyeLocation().clone().add(player.getLocation().getDirection());
-        spawnLoc.setYaw(player.getLocation().getYaw());
-        spawnLoc.setPitch(player.getLocation().getPitch());
         ItemDisplay sword =
                 world.spawn(
-                        spawnLoc,
+                        player.getEyeLocation(),
                         ItemDisplay.class,
                         e -> {
                             e.setItemStack(knife);
@@ -446,6 +442,12 @@ public class MurderMysteryGame {
                             e.setInterpolationDuration(1);
                             e.setInterpolationDelay(0);
                         });
+
+        //        plugin.debug(
+        //                "Yaw:",
+        //                player.getEyeLocation().getYaw() + "",
+        //                "radians",
+        //                toRadians(player.getEyeLocation().getYaw()) + "");
 
         runningTasks.add(
                 new BukkitRunnable() {
@@ -467,25 +469,26 @@ public class MurderMysteryGame {
                             return;
                         }
 
-                        //                        sword.teleport(
-                        //                                sword.getLocation()
-                        //                                        .add(
-                        //                                                direction.divide(
-                        //                                                        new Vector(2, 2,
-                        // 2)))); // Movement speed
+                        sword.teleport(
+                                sword.getLocation()
+                                        .add(
+                                                direction.divide(
+                                                        new Vector(1, 1, 1)))); // Movement speed
 
                         angle += (float) PI / 3; // Rotation speed
                         if (angle >= PI * 2) {
                             angle = 0f;
                         }
 
-
                         // Construct a raw 4x4 matrix
                         Vector3f pivot = new Vector3f(-0.125f, -0.125f, 0.0f);
-                        Matrix4f matrix = new Matrix4f().identity() .translate(pivot)
+                        Matrix4f matrix =
+                                new Matrix4f()
+                                        .rotateY(
+                                                (float) (-yawRad - (PI / 2))) // point toward facing
+                                        .translate(pivot)
                                         .rotateZ(angle)
-                                        .translate(-pivot.x, -pivot.y, -pivot.z)
-                                                .rotateY(-yawRad);
+                                        .translate(-pivot.x, -pivot.y, -pivot.z);
 
                         sword.setTransformationMatrix(matrix);
 
