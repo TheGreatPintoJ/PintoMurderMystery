@@ -179,8 +179,10 @@ public class GameListeners implements Listener {
         MurderMysteryGame game = plugin.getGame(player.getWorld().getName());
         if (game == null) return;
         if (event.getItem() == null) return;
-        if (event.getAction().name().contains("RIGHT_CLICK")
-                && event.getItem().isSimilar(game.knife)) game.tryThrowKnife(player);
+        if (event.getAction().name().contains("RIGHT_CLICK")) {
+            event.setCancelled(true);
+            if(event.getItem().isSimilar(game.knife)) game.tryThrowKnife(player);
+        }
 
         if (event.getAction().name().contains("LEFT_CLICK")
                 && event.getItem().isSimilar(game.zapper)) game.instaShoot(player);
