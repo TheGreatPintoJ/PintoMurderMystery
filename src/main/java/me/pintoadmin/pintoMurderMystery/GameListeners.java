@@ -11,6 +11,7 @@ import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
+import org.bukkit.inventory.*;
 import org.bukkit.plugin.*;
 import org.bukkit.scheduler.*;
 import org.bukkit.scoreboard.*;
@@ -158,18 +159,46 @@ public class GameListeners implements Listener {
         MurderMysteryGame game = plugin.getGame(event.getEntity().getWorld().getName());
         if (game == null) return;
         if (!(event.getEntity() instanceof Player victim)) return;
-        if (!(event.getDamager() instanceof Player attacker)) return;
+        if (!(event.getDamageSource().getCausingEntity() instanceof Player attacker)) return;
+        if (victim == attacker) return;
 
         game.damaged(victim, attacker, event);
     }
 
     @EventHandler
-    public void onRightClickAir(PlayerInteractEvent event) {
+    public void onInteractEvent(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         MurderMysteryGame game = plugin.getGame(player.getWorld().getName());
         if (game == null) return;
-        if (!event.getAction().name().contains("RIGHT_CLICK")) return;
+        if (event.getAction().name().contains("RIGHT_CLICK")
+                && event.getItem().isSimilar(game.knife)) game.tryThrowKnife(player);
 
-        game.tryThrowKnife(player);
+        if (event.getAction().name().contains("LEFT_CLICK")
+                && event.getItem().isSimilar(game.zapper)) game.instaShoot(player);
+    }
+
+    @EventHandler
+    public void onArrowShoot(EntityShootBowEvent event){
+        if(!(event.getEntity() instanceof Player player)) return;
+        MurderMysteryGame game = plugin.getGame(player.getWorld().getName());
+        if (game == null) return;
+        if(!(event.getProjectile() instanceof Arrow arrow)) return;
+        arrow.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
+        game.shotArrows.add(arrow);
+    }
+
+    @EventHandler
+    public void onItemPickup(EntityPickupItemEvent e) {
+        if (!(e.getEntity() instanceof Player p)) return;
+        MurderMysteryGame game = plugin.getGame(p.getWorld().getName());
+        if (game == null) return;
+        if (e.getItem().getItemStack().isSimilar(game.coin)) game.pickupCoin(p);
+    }
+
+    @EventHandler
+    public void onItemMerge(ItemMergeEvent e) {
+        MurderMysteryGame game = plugin.getGame(e.getEntity().getWorld().getName());
+        if (game == null) return;
+        if (e.getEntity().getItemStack().isSimilar(game.coin)) e.setCancelled(true);
     }
 }

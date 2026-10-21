@@ -10,6 +10,7 @@ import org.bukkit.*;
 import org.bukkit.attribute.*;
 import org.bukkit.configuration.*;
 import org.bukkit.configuration.file.*;
+import org.bukkit.damage.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.inventory.*;
@@ -21,7 +22,7 @@ import org.bukkit.scoreboard.*;
 import org.bukkit.util.Vector;
 import org.joml.*;
 
-public class MurderMysteryGame {
+public final class MurderMysteryGame {
     // Construction
     private final PintoMurderMystery plugin = PintoMurderMystery.getInstance();
     private final FileConfiguration configFile;
@@ -49,11 +50,14 @@ public class MurderMysteryGame {
     private final Team murdererTeam;
     private final List<BukkitTask> runningTasks = new ArrayList<>();
     private BukkitTask coinTask;
-    private final List<Item> coinEntities = new ArrayList<>();
+    public final List<Item> coinEntities = new ArrayList<>();
     private final List<BukkitTask> giveKnifeTasks = new ArrayList<>();
     private final List<ItemDisplay> knifeEntities = new ArrayList<>();
+    public final List<Arrow> shotArrows = new ArrayList<>();
 
     public final ItemStack knife;
+    public final ItemStack coin;
+    public final ItemStack zapper;
     // Game settings
     private int gracePeriod;
     private int murderers;
@@ -94,8 +98,21 @@ public class MurderMysteryGame {
         init();
         knife = new ItemStack(Material.IRON_SWORD);
         ItemMeta meta = knife.getItemMeta();
+        assert meta != null;
         meta.setItemName(ChatColor.DARK_RED + "Knife");
         knife.setItemMeta(meta);
+
+        coin = new ItemStack(Material.GOLD_NUGGET);
+        meta = coin.getItemMeta();
+        assert meta != null;
+        meta.setItemName(ChatColor.GOLD + "Gold Coin");
+        coin.setItemMeta(meta);
+
+        zapper = new ItemStack(Material.BOW);
+        meta = zapper.getItemMeta();
+        assert meta != null;
+        meta.setItemName(ChatColor.AQUA + "Zapper");
+        zapper.setItemMeta(meta);
     }
 
     // Game operation methods
@@ -311,7 +328,7 @@ public class MurderMysteryGame {
                                                         .isAir()
                                                 && loc.getBlock().getType().isAir()) {
                                             if (!loc.getBlock().getType().isOccluding())
-                                                loc.subtract(0, 0.5, 0);
+                                                loc.subtract(0, 0.75, 0);
                                             possibleRadius.add(loc);
                                         }
                                     }
@@ -328,17 +345,9 @@ public class MurderMysteryGame {
                                         chosenBlock,
                                         Item.class,
                                         i -> {
-                                            i.setItemStack(new ItemStack(Material.GOLD_NUGGET));
-                                            ItemMeta m = i.getItemStack().getItemMeta();
-                                            assert m != null;
-                                            m.setItemName(ChatColor.GOLD + "Gold Coin");
-                                            i.getItemStack().setItemMeta(m);
-                                            i.setGravity(false);
+                                            i.setItemStack(coin);
                                             i.setPickupDelay(5);
-                                            i.setVelocity(new Vector(0, 0, 0));
                                         }));
-
-                        coinEntities.forEach(i -> i.setVelocity(new Vector(0, 0, 0)));
                     }
                 }.runTaskTimer(plugin, 0L, coinSpawnFrequency);
     }
@@ -391,6 +400,8 @@ public class MurderMysteryGame {
                         coinTask.cancel();
                         coinEntities.forEach(Item::remove);
                         coinEntities.clear();
+                        shotArrows.forEach(Arrow::remove);
+                        shotArrows.clear();
                         for (Player player : world.getPlayers()) {
                             innocentTeam.removeEntry(player.getName());
                             murdererTeam.removeEntry(player.getName());
@@ -481,7 +492,14 @@ public class MurderMysteryGame {
                                         playerStates.get(p) == PlayerState.PLAYING
                                                 && playerRoles.get(p) != PlayerRole.MURDERER)
                         .toList();
-        if (livingPlayers.isEmpty()) end(false);
+        List<Player> livingMurderers =
+                playerStates.keySet().stream()
+                        .filter(
+                                p ->
+                                        playerStates.get(p) == PlayerState.PLAYING
+                                                && playerRoles.get(p) == PlayerRole.MURDERER)
+                        .toList();
+        if (livingPlayers.isEmpty() || livingMurderers.isEmpty()) end(false);
 
         new BukkitRunnable() {
             @Override
@@ -506,11 +524,15 @@ public class MurderMysteryGame {
             playerStates.keySet().stream()
                     .filter(p -> playerStates.get(p) != PlayerState.LEFT)
                     .forEach(p -> p.playSound(p, Sound.ENTITY_PLAYER_HURT, 0.5f, 0.1f));
+        } else if (playerRoles.get(attacker) != PlayerRole.MURDERER) {
+            if (event.getDamageSource().getDamageType() != DamageType.ARROW) return;
+
+            // TODO: check if sheriff and kill on wrong guess
+            victim.damage(victim.getAttribute(Attribute.MAX_HEALTH).getValue());
         }
     }
 
     public void tryThrowKnife(Player player) {
-        if (!player.getInventory().getItemInMainHand().isSimilar(knife)) return;
         if (playerRoles.get(player) != PlayerRole.MURDERER) return;
         // is murderer, is holding knife
 
@@ -602,6 +624,39 @@ public class MurderMysteryGame {
                         }
                     }
                 }.runTaskTimer(plugin, 0L, 20L));
+    }
+
+    public void instaShoot(Player player) {
+        if (!bowInstaShoot) return;
+        if (!player.getInventory().contains(Material.ARROW)) return;
+
+        Arrow arrow = player.launchProjectile(Arrow.class, player.getLocation().getDirection());
+        arrow.setVelocity(player.getLocation().getDirection().multiply(3.0));
+        arrow.setPickupStatus(Arrow.PickupStatus.DISALLOWED);
+
+        shotArrows.add(arrow);
+
+        player.getInventory().removeItem(new ItemStack(Material.ARROW, 1));
+    }
+
+    public void pickupCoin(Player player) {
+        runningTasks.add(
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        if (!player.getInventory().containsAtLeast(coin, coinsToBow)) return;
+                        ItemStack toBowCoins = coin.clone();
+                        toBowCoins.setAmount(coinsToBow);
+
+                        if (playerRoles.get(player) != PlayerRole.MURDERER) {
+                            player.getInventory().removeItem(toBowCoins);
+                            if (!player.getInventory().contains(zapper))
+                                player.getInventory().addItem(zapper);
+                            player.getInventory().addItem(new ItemStack(Material.ARROW));
+                        }
+                    }
+                }.runTask(plugin) // Run on next tick to include the pickedup coin
+                );
     }
 
     /*
