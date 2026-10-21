@@ -18,7 +18,6 @@ import org.bukkit.potion.*;
 import org.bukkit.profile.*;
 import org.bukkit.scheduler.*;
 import org.bukkit.scoreboard.*;
-import org.bukkit.util.*;
 import org.bukkit.util.Vector;
 import org.joml.*;
 
@@ -49,6 +48,8 @@ public class MurderMysteryGame {
     private final Team innocentTeam;
     private final Team murdererTeam;
     private final List<BukkitTask> runningTasks = new ArrayList<>();
+    private final List<BukkitTask> giveKnifeTasks = new ArrayList<>();
+    private final List<ItemDisplay> knifeEntities = new ArrayList<>();
 
     public final ItemStack knife;
     // Game settings
@@ -299,6 +300,8 @@ public class MurderMysteryGame {
                 new BukkitRunnable() {
                     @Override
                     public void run() {
+                        giveKnifeTasks.forEach(BukkitTask::cancel);
+                        knifeEntities.forEach(ItemDisplay::remove);
                         for (Player player : world.getPlayers()) {
                             innocentTeam.removeEntry(player.getName());
                             murdererTeam.removeEntry(player.getName());
@@ -402,16 +405,6 @@ public class MurderMysteryGame {
     }
 
     public void damaged(Player victim, Player attacker, EntityDamageByEntityEvent event) {
-        //        plugin.debug("States:", playerStates.toString());
-        //        plugin.debug("Roles:", playerRoles.toString());
-        //        plugin.debug(
-        //                "Attacker:",
-        //                playerRoles.get(attacker).name(),
-        //                "Victim:",
-        //                playerRoles.get(victim).name(),
-        //                "Item:",
-        //                attacker.getInventory().getItemInMainHand().toString());
-
         event.setCancelled(true);
 
         if (playerStates.get(victim) != PlayerState.PLAYING
@@ -432,7 +425,7 @@ public class MurderMysteryGame {
         if (playerRoles.get(player) != PlayerRole.MURDERER) return;
         // is murderer, is holding knife
 
-        ItemDisplay sword =
+        ItemDisplay knifeEntity =
                 world.spawn(
                         player.getEyeLocation(),
                         ItemDisplay.class,
@@ -443,6 +436,8 @@ public class MurderMysteryGame {
                             e.setInterpolationDelay(0);
                         });
 
+        knifeEntities.add(knifeEntity);
+
         runningTasks.add(
                 new BukkitRunnable() {
                     float angle = 0f;
@@ -452,8 +447,8 @@ public class MurderMysteryGame {
 
                     @Override
                     public void run() {
-                        if (!sword.getLocation().getBlock().getType().isAir()) sword.remove();
-                        List<Entity> nearEntities = sword.getNearbyEntities(1, 1, 0.3);
+                        if (!knifeEntity.getLocation().getBlock().getType().isAir()) knifeEntity.remove();
+                        List<Entity> nearEntities = knifeEntity.getNearbyEntities(1, 1, 0.3);
                         nearEntities.stream()
                                 .filter(e -> e instanceof LivingEntity)
                                 .forEach(
@@ -466,14 +461,13 @@ public class MurderMysteryGame {
                                                     le.getAttribute(Attribute.MAX_HEALTH)
                                                             .getValue());
                                         });
-                        if (sword.isDead()) {
-                            player.getInventory().addItem(knife);
+                        if (knifeEntity.isDead()) {
                             this.cancel();
                             return;
                         }
 
-                        sword.teleport(
-                                sword.getLocation()
+                        knifeEntity.teleport(
+                                knifeEntity.getLocation()
                                         .add(
                                                 direction.divide(
                                                         new Vector(1, 1, 1)))); // Movement speed
@@ -493,13 +487,30 @@ public class MurderMysteryGame {
                                         .rotateZ(angle)
                                         .translate(-pivot.x, -pivot.y, -pivot.z);
 
-                        sword.setTransformationMatrix(matrix);
+                        knifeEntity.setTransformationMatrix(matrix);
 
-                        sword.setInterpolationDelay(0);
-                        sword.setInterpolationDuration(1);
+                        knifeEntity.setInterpolationDelay(0);
+                        knifeEntity.setInterpolationDuration(1);
                     }
                 }.runTaskTimer(plugin, 0L, 1L));
         player.getInventory().remove(knife);
+
+        giveKnifeTasks.add(
+                new BukkitRunnable() {
+                    int countdown = 5; // seconds
+
+                    @Override
+                    public void run() {
+                        if (countdown <= 0) {
+                            player.setLevel(0);
+                            player.getInventory().addItem(knife);
+                            this.cancel();
+                        } else {
+                            player.setLevel(countdown);
+                            countdown--;
+                        }
+                    }
+                }.runTaskTimer(plugin, 0L, 20L));
     }
 
     /*
