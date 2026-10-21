@@ -48,6 +48,8 @@ public class MurderMysteryGame {
     private final Team innocentTeam;
     private final Team murdererTeam;
     private final List<BukkitTask> runningTasks = new ArrayList<>();
+    private BukkitTask coinTask;
+    private final List<Item> coinEntities = new ArrayList<>();
     private final List<BukkitTask> giveKnifeTasks = new ArrayList<>();
     private final List<ItemDisplay> knifeEntities = new ArrayList<>();
 
@@ -61,10 +63,12 @@ public class MurderMysteryGame {
     private boolean bowInstaShoot;
     private boolean deathWater;
     private boolean canDropItems;
+    private int coinSpawnFrequency;
 
     private Location endLocation;
     private Map<Vector, Double[]> spawnLocations =
             new HashMap<>(); // List of spawn location vectors to facing coords (v[0]=x, v[1]=z)
+    private Map<Vector, Integer> coinLocations = new HashMap<>(); // Location to radius
     //        private boolean sheriffWrongGuessKills = true;
 
     // Game status
@@ -109,6 +113,8 @@ public class MurderMysteryGame {
                 getVector("endlocation")
                         .toLocation(Bukkit.getWorld(config.getString("endlocation.world")));
 
+        coinSpawnFrequency = config.getInt("coinspawnfrequency");
+
         try {
             List<Map<?, ?>> spawnLocations = config.getMapList("spawnlocations");
             for (Map<?, ?> map : spawnLocations) {
@@ -123,6 +129,21 @@ public class MurderMysteryGame {
             plugin.getLogger()
                     .severe(
                             "Fix your config! Could not retrieve spawn locations: "
+                                    + e.getMessage());
+        }
+        try {
+            List<Map<?, ?>> coinlocations = config.getMapList("coinlocations");
+            for (Map<?, ?> map : coinlocations) {
+                double x = (double) map.get("x");
+                double y = (double) map.get("y");
+                double z = (double) map.get("z");
+                int r = (int) map.get("r");
+                this.coinLocations.put(new Vector(x, y, z), r);
+            }
+        } catch (ClassCastException e) {
+            plugin.getLogger()
+                    .severe(
+                            "Fix your config! Could not retrieve coin locations: "
                                     + e.getMessage());
         }
     }
@@ -257,6 +278,69 @@ public class MurderMysteryGame {
                         }
                     }
                 }.runTaskTimer(plugin, 0L, 20L)); // 20L = 1 second
+
+        coinTask =
+                new BukkitRunnable() {
+                    final Random random = new Random();
+
+                    @Override
+                    public void run() {
+                        if (coinLocations.isEmpty()) return;
+                        Vector chosenLocation =
+                                coinLocations.keySet().stream()
+                                        .toList()
+                                        .get(random.nextInt(coinLocations.size()));
+                        int radius = coinLocations.get(chosenLocation);
+
+                        List<Location> possibleRadius = new ArrayList<>();
+                        for (int x = -radius; x <= radius; x++) {
+                            for (int y = -radius; y <= radius; y++) {
+                                for (int z = -radius; z <= radius; z++) {
+                                    if (x * x + y * y + z * z <= radius * radius) {
+                                        Location loc =
+                                                new Vector(
+                                                                chosenLocation.getX() + x,
+                                                                chosenLocation.getY() + y,
+                                                                chosenLocation.getZ() + z)
+                                                        .toLocation(world);
+                                        // Filter to air blocks with non-air below them
+                                        if (!loc.clone()
+                                                        .subtract(0, 1, 0)
+                                                        .getBlock()
+                                                        .getType()
+                                                        .isAir()
+                                                && loc.getBlock().getType().isAir()) {
+                                            if (!loc.getBlock().getType().isOccluding())
+                                                loc.subtract(0, 0.5, 0);
+                                            possibleRadius.add(loc);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (possibleRadius.isEmpty()) return;
+                        Location chosenBlock =
+                                possibleRadius.get(random.nextInt(possibleRadius.size()));
+
+                        coinEntities.add(
+                                world.spawn(
+                                        chosenBlock,
+                                        Item.class,
+                                        i -> {
+                                            i.setItemStack(new ItemStack(Material.GOLD_NUGGET));
+                                            ItemMeta m = i.getItemStack().getItemMeta();
+                                            assert m != null;
+                                            m.setItemName(ChatColor.GOLD + "Gold Coin");
+                                            i.getItemStack().setItemMeta(m);
+                                            i.setGravity(false);
+                                            i.setPickupDelay(5);
+                                            i.setVelocity(new Vector(0, 0, 0));
+                                        }));
+
+                        coinEntities.forEach(i -> i.setVelocity(new Vector(0, 0, 0)));
+                    }
+                }.runTaskTimer(plugin, 0L, coinSpawnFrequency);
     }
 
     public void end(boolean force) {
@@ -296,12 +380,17 @@ public class MurderMysteryGame {
             }
         }
         // Teleport all players to end after 3s
-        BukkitRunnable runnable =
+        BukkitRunnable cleanupTask =
                 new BukkitRunnable() {
                     @Override
                     public void run() {
                         giveKnifeTasks.forEach(BukkitTask::cancel);
+                        giveKnifeTasks.clear();
                         knifeEntities.forEach(ItemDisplay::remove);
+                        knifeEntities.clear();
+                        coinTask.cancel();
+                        coinEntities.forEach(Item::remove);
+                        coinEntities.clear();
                         for (Player player : world.getPlayers()) {
                             innocentTeam.removeEntry(player.getName());
                             murdererTeam.removeEntry(player.getName());
@@ -313,8 +402,8 @@ public class MurderMysteryGame {
                         ended = false;
                     }
                 };
-        if (force) runnable.run();
-        else runningTasks.add(runnable.runTaskLater(plugin, 60L));
+        if (force) cleanupTask.run();
+        else runningTasks.add(cleanupTask.runTaskLater(plugin, 60L));
     }
 
     public void join(Player player) {
@@ -447,7 +536,8 @@ public class MurderMysteryGame {
 
                     @Override
                     public void run() {
-                        if (!knifeEntity.getLocation().getBlock().getType().isAir()) knifeEntity.remove();
+                        if (!knifeEntity.getLocation().getBlock().getType().isAir())
+                            knifeEntity.remove();
                         List<Entity> nearEntities = knifeEntity.getNearbyEntities(1, 1, 0.3);
                         nearEntities.stream()
                                 .filter(e -> e instanceof LivingEntity)
@@ -467,7 +557,8 @@ public class MurderMysteryGame {
                         }
 
                         knifeEntity.teleport(
-                                knifeEntity.getLocation()
+                                knifeEntity
+                                        .getLocation()
                                         .add(
                                                 direction.divide(
                                                         new Vector(1, 1, 1)))); // Movement speed
