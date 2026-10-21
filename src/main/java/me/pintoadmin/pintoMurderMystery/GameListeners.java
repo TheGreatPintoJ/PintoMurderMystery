@@ -5,6 +5,7 @@ import static org.bukkit.Bukkit.getServer;
 import java.util.*;
 import org.bukkit.*;
 import org.bukkit.block.*;
+import org.bukkit.damage.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.*;
 import org.bukkit.event.block.*;
@@ -161,6 +162,13 @@ public class GameListeners implements Listener {
         if (!(event.getEntity() instanceof Player victim)) return;
         if (!(event.getDamageSource().getCausingEntity() instanceof Player attacker)) return;
         if (victim == attacker) return;
+
+        if (attacker.getInventory().getItemInMainHand().isSimilar(game.zapper)
+                && event.getDamageSource().getDamageType() != DamageType.ARROW) {
+            event.setCancelled(true);
+            game.instaShoot(attacker);
+            return;
+        }
 
         game.damaged(victim, attacker, event);
     }

@@ -39,6 +39,7 @@ bridge1: # world name - can be anything
       r: R
 
   coinspawnfrequency: 40 # how often a gold will spawn at a random location in ticks. for balancing, this number should be lower corresponding to higher amounts of possible locations
+  maxcoins: 200 # how many coins will be allowed to exist before all get cleared
 
   endlocation: # location that the players will be teleported to after the game
     world: lobby

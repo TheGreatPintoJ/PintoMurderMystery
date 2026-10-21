@@ -1,7 +1,6 @@
 package me.pintoadmin.pintoMurderMystery;
 
-import static java.lang.Math.PI;
-import static java.lang.Math.toRadians;
+import static java.lang.Math.*;
 
 import java.net.*;
 import java.util.*;
@@ -68,6 +67,7 @@ public final class MurderMysteryGame {
     private boolean deathWater;
     private boolean canDropItems;
     private int coinSpawnFrequency;
+    private int maxCoins;
 
     private Location endLocation;
     private Map<Vector, Double[]> spawnLocations =
@@ -125,6 +125,7 @@ public final class MurderMysteryGame {
         bowInstaShoot = config.getBoolean("bowinstashoot", false);
         deathWater = config.getBoolean("deathwater", true);
         canDropItems = config.getBoolean("candrop", false);
+        maxCoins = config.getInt("maxcoins", 200);
 
         endLocation =
                 getVector("endlocation")
@@ -302,9 +303,9 @@ public final class MurderMysteryGame {
 
                     @Override
                     public void run() {
-                        if (coinEntities.size() >= 200) {
+                        if (coinEntities.size() >= maxCoins) {
                             plugin.getLogger()
-                                    .severe(
+                                    .warning(
                                             "Too many coins in game: "
                                                     + name
                                                     + " - clearing coins...");
