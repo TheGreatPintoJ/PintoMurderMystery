@@ -181,7 +181,7 @@ public class GameListeners implements Listener {
         if (event.getItem() == null) return;
         if (event.getAction().name().contains("RIGHT_CLICK")) {
             event.setCancelled(true);
-            if(event.getItem().isSimilar(game.knife)) game.tryThrowKnife(player);
+            if (event.getItem().isSimilar(game.knife)) game.tryThrowKnife(player);
         }
 
         if (event.getAction().name().contains("LEFT_CLICK")

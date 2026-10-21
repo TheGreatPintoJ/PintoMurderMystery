@@ -69,6 +69,9 @@ public final class MurderMysteryGame {
     private int coinSpawnFrequency;
     private int maxCoins;
 
+    private long timeOfDay;
+    private String weather;
+
     private Location endLocation;
     private Map<Vector, Double[]> spawnLocations =
             new HashMap<>(); // List of spawn location vectors to facing coords (v[0]=x, v[1]=z)
@@ -127,6 +130,9 @@ public final class MurderMysteryGame {
         canDropItems = config.getBoolean("candrop", false);
         maxCoins = config.getInt("maxcoins", 200);
 
+        timeOfDay = config.getLong("timeofday", 6000);
+        weather = config.getString("weather", "clear");
+
         endLocation =
                 getVector("endlocation")
                         .toLocation(Bukkit.getWorld(config.getString("endlocation.world")));
@@ -169,6 +175,23 @@ public final class MurderMysteryGame {
     public void start() {
         playing = true;
         world.setGameRule(GameRule.PVP, false);
+
+        switch (weather) {
+            case "rain":
+                world.setStorm(true);
+                world.setThundering(false);
+                break;
+            case "thunder":
+                world.setStorm(true);
+                world.setThundering(true);
+                break;
+            case "clear":
+                world.setStorm(false);
+                world.setThundering(false);
+                break;
+        }
+        world.setTime(timeOfDay);
+
         // Teleport all players to a random entry in a config list
         List<Player> playingPlayers =
                 playerStates.keySet().stream()

@@ -59,3 +59,7 @@ bridge1: # world name - can be anything
 
   gamerules: # Set boolean gamerules
     fallDamage: false
+
+  # If you want these values to stick for the duration of the game, set advance_time and advance_weather to false in gamerules above
+  timeofday: 18000 # Time of day in ticks (0:sunrise, 1k:morning, 6k:noon, 12k:sunset, 13k:night, 18k:midnight, 23k:dawn)
+  weather: thunder # Weather (clear, rain, thunder)
