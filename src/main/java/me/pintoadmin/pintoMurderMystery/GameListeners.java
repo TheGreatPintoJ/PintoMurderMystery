@@ -170,6 +170,7 @@ public class GameListeners implements Listener {
         Player player = event.getPlayer();
         MurderMysteryGame game = plugin.getGame(player.getWorld().getName());
         if (game == null) return;
+        if (event.getItem() == null) return;
         if (event.getAction().name().contains("RIGHT_CLICK")
                 && event.getItem().isSimilar(game.knife)) game.tryThrowKnife(player);
 
@@ -178,11 +179,11 @@ public class GameListeners implements Listener {
     }
 
     @EventHandler
-    public void onArrowShoot(EntityShootBowEvent event){
-        if(!(event.getEntity() instanceof Player player)) return;
+    public void onArrowShoot(EntityShootBowEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
         MurderMysteryGame game = plugin.getGame(player.getWorld().getName());
         if (game == null) return;
-        if(!(event.getProjectile() instanceof Arrow arrow)) return;
+        if (!(event.getProjectile() instanceof Arrow arrow)) return;
         arrow.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
         game.shotArrows.add(arrow);
     }

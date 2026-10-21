@@ -302,6 +302,15 @@ public final class MurderMysteryGame {
 
                     @Override
                     public void run() {
+                        if (coinEntities.size() >= 200) {
+                            plugin.getLogger()
+                                    .severe(
+                                            "Too many coins in game: "
+                                                    + name
+                                                    + " - clearing coins...");
+                            coinEntities.forEach(Item::remove);
+                            coinEntities.clear();
+                        }
                         if (coinLocations.isEmpty()) return;
                         Vector chosenLocation =
                                 coinLocations.keySet().stream()
@@ -526,6 +535,7 @@ public final class MurderMysteryGame {
                     .forEach(p -> p.playSound(p, Sound.ENTITY_PLAYER_HURT, 0.5f, 0.1f));
         } else if (playerRoles.get(attacker) != PlayerRole.MURDERER) {
             if (event.getDamageSource().getDamageType() != DamageType.ARROW) return;
+            event.getDamageSource().getDirectEntity().remove();
 
             // TODO: check if sheriff and kill on wrong guess
             victim.damage(victim.getAttribute(Attribute.MAX_HEALTH).getValue());
