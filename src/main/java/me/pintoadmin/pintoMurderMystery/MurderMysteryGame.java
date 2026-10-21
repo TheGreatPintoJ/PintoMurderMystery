@@ -443,12 +443,6 @@ public class MurderMysteryGame {
                             e.setInterpolationDelay(0);
                         });
 
-        //        plugin.debug(
-        //                "Yaw:",
-        //                player.getEyeLocation().getYaw() + "",
-        //                "radians",
-        //                toRadians(player.getEyeLocation().getYaw()) + "");
-
         runningTasks.add(
                 new BukkitRunnable() {
                     float angle = 0f;
@@ -459,10 +453,19 @@ public class MurderMysteryGame {
                     @Override
                     public void run() {
                         if (!sword.getLocation().getBlock().getType().isAir()) sword.remove();
-                        List<Entity> nearEntities = sword.getNearbyEntities(1, 1, 0.5);
+                        List<Entity> nearEntities = sword.getNearbyEntities(1, 1, 0.3);
                         nearEntities.stream()
                                 .filter(e -> e instanceof LivingEntity)
-                                .forEach(e -> ((LivingEntity) e).damage(7, player));
+                                .forEach(
+                                        e -> {
+                                            LivingEntity le = (LivingEntity) e;
+                                            if ((le instanceof Player p)
+                                                    && playerRoles.get(p) == PlayerRole.MURDERER)
+                                                return;
+                                            le.damage(
+                                                    le.getAttribute(Attribute.MAX_HEALTH)
+                                                            .getValue());
+                                        });
                         if (sword.isDead()) {
                             player.getInventory().addItem(knife);
                             this.cancel();
