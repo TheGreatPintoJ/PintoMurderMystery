@@ -40,7 +40,7 @@ public final class MurderMysteryGame {
     public enum PlayerRole {
         INNOCENT,
         MURDERER,
-        //        SHERIFF,
+        SHERIFF,
     }
 
     public final Map<Player, PlayerState> playerStates = new HashMap<>();
@@ -60,7 +60,7 @@ public final class MurderMysteryGame {
     // Game settings
     private int gracePeriod;
     private int murderers;
-    //    private final int sheriffs = 2;
+    private int sheriffs;
     private int maxPlayers;
     private int coinsToBow;
     private boolean bowInstaShoot;
@@ -76,7 +76,7 @@ public final class MurderMysteryGame {
     private Map<Vector, Double[]> spawnLocations =
             new HashMap<>(); // List of spawn location vectors to facing coords (v[0]=x, v[1]=z)
     private Map<Vector, Integer> coinLocations = new HashMap<>(); // Location to radius
-    //        private boolean sheriffWrongGuessKills = true;
+    private boolean wrongGuessKills = true;
 
     // Game status
     private boolean playing;
@@ -123,10 +123,12 @@ public final class MurderMysteryGame {
         // Fetch all config values and store
         gracePeriod = config.getInt("graceperiod", 15);
         murderers = config.getInt("murderers", 2);
+        sheriffs = config.getInt("sheriffs", 2);
         maxPlayers = config.getInt("maxplayers", 16);
         coinsToBow = config.getInt("coinstobow", 10);
         bowInstaShoot = config.getBoolean("bowinstashoot", false);
         deathWater = config.getBoolean("deathwater", true);
+        wrongGuessKills = config.getBoolean("wrongguesskills", true);
         canDropItems = config.getBoolean("candrop", false);
         maxCoins = config.getInt("maxcoins", 200);
 
@@ -251,17 +253,19 @@ public final class MurderMysteryGame {
                         } else {
                             // Announce roles and give murderers their weapons
                             Random random = new Random();
+                            List<Player> availablePlayers = new ArrayList<>(playingPlayers);
                             for (int i = 0; i < murderers; i++) {
                                 Player randPlayer =
                                         playingPlayers.get(random.nextInt(playingPlayers.size()));
                                 playerRoles.put(randPlayer, PlayerRole.MURDERER);
                             }
-                            //                            for(int i = 0; i < sheriffs; i++) {
-                            //                                Player randPlayer =
-                            // playingPlayers.get(random.nextInt(playingPlayers.size()));
-                            //                                playerRoles.put(randPlayer,
-                            // PlayerRole.SHERIFF);
-                            //                            }
+                            availablePlayers.removeAll(playerRoles.keySet());
+                            for (int i = 0; i < sheriffs; i++) {
+                                Player randPlayer =
+                                        availablePlayers.get(
+                                                random.nextInt(availablePlayers.size()));
+                                playerRoles.put(randPlayer, PlayerRole.SHERIFF);
+                            }
 
                             for (Player player : playingPlayers) {
                                 if (playerRoles.get(player) == PlayerRole.MURDERER) {
@@ -300,19 +304,23 @@ public final class MurderMysteryGame {
                                     player.getInventory().addItem(knife);
                                 } else if (playerRoles.get(player) == null) {
                                     player.sendTitle(
-                                            ChatColor.AQUA + "" + ChatColor.BOLD + "INNOCENT",
+                                            ChatColor.GREEN + "" + ChatColor.BOLD + "INNOCENT",
                                             ChatColor.DARK_GRAY + "Survive for as long as possible",
                                             0,
                                             60,
                                             0);
                                     innocentTeam.addEntry(player.getName());
                                     playerRoles.put(player, PlayerRole.INNOCENT);
+                                } else if (playerRoles.get(player) == PlayerRole.SHERIFF) {
+                                    player.sendTitle(
+                                            ChatColor.AQUA + "" + ChatColor.BOLD + "SHERIFF",
+                                            "Find and shoot the Murderers",
+                                            0,
+                                            60,
+                                            0);
+                                    player.getInventory().addItem(zapper);
+                                    player.getInventory().addItem(new ItemStack(Material.ARROW));
                                 }
-                                //                                else if(playerRoles.get(player) ==
-                                // PlayerRole.SHERIFF)
-                                //
-                                // player.sendTitle(ChatColor.GRAY+""+ChatColor.BOLD+"SHERIFF", "",
-                                // 0, 60, 0);
                             }
                             world.setGameRule(GameRule.PVP, true);
                             this.cancel();
@@ -561,8 +569,9 @@ public final class MurderMysteryGame {
             if (event.getDamageSource().getDamageType() != DamageType.ARROW) return;
             event.getDamageSource().getDirectEntity().remove();
 
-            // TODO: check if sheriff and kill on wrong guess
-            victim.damage(victim.getAttribute(Attribute.MAX_HEALTH).getValue());
+            if (playerRoles.get(victim) != PlayerRole.MURDERER && wrongGuessKills)
+                attacker.damage(attacker.getAttribute(Attribute.MAX_HEALTH).getValue());
+            else victim.damage(victim.getAttribute(Attribute.MAX_HEALTH).getValue());
         }
     }
 
@@ -683,10 +692,14 @@ public final class MurderMysteryGame {
                         toBowCoins.setAmount(coinsToBow);
 
                         if (playerRoles.get(player) != PlayerRole.MURDERER) {
-                            player.getInventory().removeItem(toBowCoins);
-                            if (!player.getInventory().contains(zapper))
+                            if (!player.getInventory().contains(zapper)) {
                                 player.getInventory().addItem(zapper);
-                            player.getInventory().addItem(new ItemStack(Material.ARROW));
+                            }
+                            if (!(player.getInventory().contains(Material.ARROW)
+                                    && wrongGuessKills)) {
+                                player.getInventory().addItem(new ItemStack(Material.ARROW));
+                                player.getInventory().removeItem(toBowCoins);
+                            }
                         }
                     }
                 }.runTask(plugin) // Run on next tick to include the pickedup coin
