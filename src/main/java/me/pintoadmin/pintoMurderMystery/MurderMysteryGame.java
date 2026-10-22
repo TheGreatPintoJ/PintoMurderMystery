@@ -393,6 +393,19 @@ public final class MurderMysteryGame {
                                         }));
                     }
                 }.runTaskTimer(plugin, 0L, coinSpawnFrequency);
+
+        if (deathWater)
+            runningTasks.add(
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            for (Player player : world.getPlayers()) {
+                                if (player.isInWater())
+                                    player.damage(
+                                            2, DamageSource.builder(DamageType.DROWN).build());
+                            }
+                        }
+                    }.runTaskTimer(plugin, 0L, 10L));
     }
 
     public void end(boolean force) {
