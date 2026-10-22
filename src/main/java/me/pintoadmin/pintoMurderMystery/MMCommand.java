@@ -5,6 +5,7 @@ import java.util.stream.*;
 import org.bukkit.*;
 import org.bukkit.GameRule;
 import org.bukkit.command.*;
+import org.bukkit.util.Vector;
 
 public class MMCommand implements CommandExecutor {
     private final PintoMurderMystery plugin;
@@ -75,36 +76,139 @@ public class MMCommand implements CommandExecutor {
                     new ArrayList<>(
                             Arrays.stream(GameRule.values()).map(GameRule::getName).toList());
 
-            finalList.addAll(
-                    switch (args.length) {
-                        case 1 -> List.of("reload", "new", "edit");
-                        case 2 ->
-                                args[0].equalsIgnoreCase("reload")
-                                        ? List.of()
-                                        : allGames.isEmpty() ? List.of("<name>") : allGames;
-                        case 3 -> args[0].equalsIgnoreCase("edit") ? allEditOptions : List.of();
-                        case 4 ->
-                                boolEditOptions.contains(args[2])
-                                        ? List.of("true", "false")
-                                        : intEditOptions.contains(args[2])
-                                                ? List.of("<number>")
-                                                : otherEditOptions.contains(args[2])
-                                                        ? args[2].equalsIgnoreCase("weather")
-                                                                ? List.of(
-                                                                        "clear", "rain", "thunder")
-                                                                : args[2].equalsIgnoreCase(
-                                                                                        "spawnlocation")
-                                                                                || args[2]
-                                                                                        .equalsIgnoreCase(
-                                                                                                "coinlocation")
-                                                                        ? List.of("set", "remove")
-                                                                        : args[2].equalsIgnoreCase(
-                                                                                        "gamerule")
-                                                                                ? gameruleStrings
-                                                                                : List.of()
-                                                        : List.of();
-                        default -> List.of();
-                    });
+            try {
+                if (args.length == 1) {
+                    finalList.addAll(List.of("reload", "edit", "remove"));
+                } else if (args.length == 2) {
+                    if (!args[0].equalsIgnoreCase("reload")) {
+                        finalList.addAll(plugin.configLoader.getAllGames());
+                    }
+                } else if (args.length == 3) {
+                    if (args[0].equalsIgnoreCase("edit")) {
+                        finalList.addAll(allEditOptions);
+                    }
+                } else if (args.length == 4) {
+                    if (args[0].equalsIgnoreCase("edit")) {
+                        if (boolEditOptions.contains(args[2])) {
+                            finalList.addAll(List.of("true", "false"));
+                        } else if (intEditOptions.contains(args[2])) {
+                            finalList.add("<number>");
+                        } else if (args[2].equalsIgnoreCase("gamerule")) {
+                            finalList.addAll(gameruleStrings);
+                        } else if (otherEditOptions.contains(args[2])) {
+                            if (args[2].equalsIgnoreCase("weather"))
+                                finalList.addAll(List.of("rain", "clear", "thunder"));
+                            else if (args[2].equalsIgnoreCase("spawnlocation")
+                                    || args[2].equalsIgnoreCase("coinlocation"))
+                                finalList.addAll(List.of("set", "remove"));
+                        }
+                    }
+                } else if (args.length == 5) {
+                    if (args[0].equalsIgnoreCase("edit")) {
+                        if (args[2].equalsIgnoreCase("gamerule")) {
+                            finalList.addAll(List.of("true", "false"));
+                        } else if (args[2].equalsIgnoreCase("spawnlocation")) {
+                            finalList.addAll(
+                                    plugin.getGame(args[1]).getSpawnLocations().keySet().stream()
+                                            .map(Vector::getX)
+                                            .map(Object::toString)
+                                            .toList());
+                        } else if (args[2].equalsIgnoreCase("coinlocation")) {
+                            finalList.addAll(
+                                    plugin.getGame(args[1]).getCoinLocations().keySet().stream()
+                                            .map(Vector::getX)
+                                            .map(Object::toString)
+                                            .toList());
+                        }
+                    }
+                } else if (args.length == 6) {
+                    if (args[0].equalsIgnoreCase("edit")) {
+                        if (args[2].equalsIgnoreCase("spawnlocation")) {
+                            finalList.addAll(
+                                    plugin.getGame(args[1]).getSpawnLocations().keySet().stream()
+                                            .filter(v -> Double.toString(v.getX()).equals(args[4]))
+                                            .map(Vector::getY)
+                                            .map(Object::toString)
+                                            .toList());
+                        } else if (args[2].equalsIgnoreCase("coinlocation")) {
+                            finalList.addAll(
+                                    plugin.getGame(args[1]).getCoinLocations().keySet().stream()
+                                            .filter(v -> Double.toString(v.getX()).equals(args[4]))
+                                            .map(Vector::getY)
+                                            .map(Object::toString)
+                                            .toList());
+                        }
+                    }
+                } else if (args.length == 7) {
+                    if (args[0].equalsIgnoreCase("edit")) {
+                        if (args[2].equalsIgnoreCase("spawnlocation")) {
+                            finalList.addAll(
+                                    plugin.getGame(args[1]).getSpawnLocations().keySet().stream()
+                                            .filter(
+                                                    v ->
+                                                            Double.toString(v.getX())
+                                                                            .equals(args[4])
+                                                                    && Double.toString(v.getY())
+                                                                            .equals(args[5]))
+                                            .map(Vector::getZ)
+                                            .map(Object::toString)
+                                            .toList());
+                        } else if (args[2].equalsIgnoreCase("coinlocation")) {
+                            finalList.addAll(
+                                    plugin.getGame(args[1]).getCoinLocations().keySet().stream()
+                                            .filter(
+                                                    v ->
+                                                            Double.toString(v.getX())
+                                                                            .equals(args[4])
+                                                                    && Double.toString(v.getY())
+                                                                            .equals(args[5]))
+                                            .map(Vector::getZ)
+                                            .map(Object::toString)
+                                            .toList());
+                        }
+                    }
+                } else if (args.length == 8) {
+                    if (args[0].equalsIgnoreCase("edit")) {
+                        if (args[2].equalsIgnoreCase("spawnlocation")) {
+                            finalList.add(
+                                    plugin.getGame(args[1])
+                                            .getSpawnLocations()
+                                            .get(
+                                                    new Vector(
+                                                            Double.parseDouble(args[4]),
+                                                            Double.parseDouble(args[5]),
+                                                            Double.parseDouble(args[6])))[0]
+                                            .toString());
+                        } else if (args[2].equalsIgnoreCase("coinlocation")) {
+                            finalList.add(
+                                    plugin.getGame(args[1])
+                                            .getCoinLocations()
+                                            .get(
+                                                    new Vector(
+                                                            Double.parseDouble(args[4]),
+                                                            Double.parseDouble(args[5]),
+                                                            Double.parseDouble(args[6])))
+                                            .toString());
+                        }
+                    }
+                } else if (args.length == 9) {
+                    if (args[0].equalsIgnoreCase("edit")) {
+                        if (args[2].equalsIgnoreCase("spawnlocation")) {
+                            finalList.add(
+                                    plugin.getGame(args[1])
+                                            .getSpawnLocations()
+                                            .get(
+                                                    new Vector(
+                                                            Double.parseDouble(args[4]),
+                                                            Double.parseDouble(args[5]),
+                                                            Double.parseDouble(args[6])))[1]
+                                            .toString());
+                        }
+                    }
+                }
+            } catch (NullPointerException ignored) {
+            }
+
             return finalList.stream()
                     .filter((str) -> str.startsWith(args[args.length - 1]))
                     .collect(Collectors.toList());

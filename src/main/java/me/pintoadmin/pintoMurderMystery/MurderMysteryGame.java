@@ -758,6 +758,14 @@ public final class MurderMysteryGame {
         return name;
     }
 
+    public Map<Vector, Double[]> getSpawnLocations() {
+        return spawnLocations;
+    }
+
+    public Map<Vector, Integer> getCoinLocations() {
+        return coinLocations;
+    }
+
     // Game status methods
     public boolean isPlaying() {
         return playing;
