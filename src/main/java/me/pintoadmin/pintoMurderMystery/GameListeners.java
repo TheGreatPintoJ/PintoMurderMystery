@@ -203,7 +203,7 @@ public class GameListeners implements Listener {
         if (!(e.getEntity() instanceof Player p)) return;
         MurderMysteryGame game = plugin.getGame(p.getWorld().getName());
         if (game == null) return;
-        if (e.getItem().getItemStack().isSimilar(game.coin)) game.pickupCoin(p);
+        if (e.getItem().getItemStack().isSimilar(game.coin)) game.pickupCoin(p, e.getItem());
     }
 
     @EventHandler

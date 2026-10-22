@@ -682,11 +682,12 @@ public final class MurderMysteryGame {
         player.getInventory().removeItem(new ItemStack(Material.ARROW, 1));
     }
 
-    public void pickupCoin(Player player) {
+    public void pickupCoin(Player player, Item coinItem) {
         runningTasks.add(
                 new BukkitRunnable() {
                     @Override
                     public void run() {
+                        coinEntities.remove(coinItem);
                         if (!player.getInventory().containsAtLeast(coin, coinsToBow)) return;
                         ItemStack toBowCoins = coin.clone();
                         toBowCoins.setAmount(coinsToBow);
