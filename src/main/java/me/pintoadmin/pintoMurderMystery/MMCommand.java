@@ -53,12 +53,43 @@ public class MMCommand implements CommandExecutor {
      *     weather <string: "clear"|"rain"|"thunder">
      *     gamerule <id> <value>
      *     endlocation
-     *     spawnlocation <set/remove> <coords> <f>
-     *     coinlocation <set/remove> <coords> <r>
+     *     spawnlocation <add/remove> <coords> <fx> <fz>
+     *     coinlocation <add/remove> <coords> <r>
      * */
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if(args[0].equalsIgnoreCase("reload")){
+            // reload
+        } else if(args[0].equalsIgnoreCase("remove")){
+            MurderMysteryGame game = plugin.getGame(args[1]);
+            if(game == null) {
+                sender.sendMessage(ChatColor.RED+"This game doesn't exist");
+                return true;
+            }
+            // remove game
+        } else if(args[0].equalsIgnoreCase("edit")){
+            String gameName = args[1];
+            if(boolEditOptions.contains(args[2]) || intEditOptions.contains(args[2]) || args[2].equalsIgnoreCase("weather")){
+                // set config value to args[3]
+            } else {
+                if(args[2].equalsIgnoreCase("gamerule")){
+                    // set gamerule args[3] to value args[4]
+                } else if(args[2].equalsIgnoreCase("spawnlocation")){
+                    if(args[3].equalsIgnoreCase("add")){
+                        // Add new entry or update existing with said coords
+                    } else if(args[3].equalsIgnoreCase("remove")){
+                        // Remove specified entry
+                    }
+                } else if(args[2].equalsIgnoreCase("coinlocation")){
+                    if(args[3].equalsIgnoreCase("add")){
+                        // Add new entry or update existing with said coords
+                    } else if(args[3].equalsIgnoreCase("remove")){
+                        // Remove specified entry
+                    }
+                }
+            }
+        }
         return false;
     }
 
@@ -100,7 +131,7 @@ public class MMCommand implements CommandExecutor {
                                 finalList.addAll(List.of("rain", "clear", "thunder"));
                             else if (args[2].equalsIgnoreCase("spawnlocation")
                                     || args[2].equalsIgnoreCase("coinlocation"))
-                                finalList.addAll(List.of("set", "remove"));
+                                finalList.addAll(List.of("add", "remove"));
                         }
                     }
                 } else if (args.length == 5) {
