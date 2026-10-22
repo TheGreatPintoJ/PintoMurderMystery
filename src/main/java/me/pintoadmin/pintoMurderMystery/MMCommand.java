@@ -59,32 +59,34 @@ public class MMCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if(args[0].equalsIgnoreCase("reload")){
+        if (args[0].equalsIgnoreCase("reload")) {
             // reload
-        } else if(args[0].equalsIgnoreCase("remove")){
+        } else if (args[0].equalsIgnoreCase("remove")) {
             MurderMysteryGame game = plugin.getGame(args[1]);
-            if(game == null) {
-                sender.sendMessage(ChatColor.RED+"This game doesn't exist");
+            if (game == null) {
+                sender.sendMessage(ChatColor.RED + "This game doesn't exist");
                 return true;
             }
             // remove game
-        } else if(args[0].equalsIgnoreCase("edit")){
+        } else if (args[0].equalsIgnoreCase("edit")) {
             String gameName = args[1];
-            if(boolEditOptions.contains(args[2]) || intEditOptions.contains(args[2]) || args[2].equalsIgnoreCase("weather")){
+            if (boolEditOptions.contains(args[2])
+                    || intEditOptions.contains(args[2])
+                    || args[2].equalsIgnoreCase("weather")) {
                 // set config value to args[3]
             } else {
-                if(args[2].equalsIgnoreCase("gamerule")){
+                if (args[2].equalsIgnoreCase("gamerule")) {
                     // set gamerule args[3] to value args[4]
-                } else if(args[2].equalsIgnoreCase("spawnlocation")){
-                    if(args[3].equalsIgnoreCase("add")){
+                } else if (args[2].equalsIgnoreCase("spawnlocation")) {
+                    if (args[3].equalsIgnoreCase("add")) {
                         // Add new entry or update existing with said coords
-                    } else if(args[3].equalsIgnoreCase("remove")){
+                    } else if (args[3].equalsIgnoreCase("remove")) {
                         // Remove specified entry
                     }
-                } else if(args[2].equalsIgnoreCase("coinlocation")){
-                    if(args[3].equalsIgnoreCase("add")){
+                } else if (args[2].equalsIgnoreCase("coinlocation")) {
+                    if (args[3].equalsIgnoreCase("add")) {
                         // Add new entry or update existing with said coords
-                    } else if(args[3].equalsIgnoreCase("remove")){
+                    } else if (args[3].equalsIgnoreCase("remove")) {
                         // Remove specified entry
                     }
                 }
