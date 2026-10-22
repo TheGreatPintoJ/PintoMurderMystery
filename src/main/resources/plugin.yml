@@ -7,3 +7,9 @@ api-version: '26.3'
 authors: [ PintoJ ]
 softdepend:
   - Multiverse-Core
+
+commands:
+  mm:
+    description: Manage the murdermystery plugin
+    usage: /mm stuff
+    permission: pintomurdermystery.command

@@ -26,6 +26,8 @@ public final class PintoMurderMystery extends JavaPlugin {
         FileConfiguration config = getConfig();
         configLoader = new ConfigLoader(this, config);
 
+        new MMCommand();
+
         // Load config games
         configLoader.start();
 
