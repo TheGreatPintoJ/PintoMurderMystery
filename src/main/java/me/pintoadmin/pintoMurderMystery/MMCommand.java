@@ -60,35 +60,107 @@ public class MMCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args[0].equalsIgnoreCase("reload")) {
-            // reload
+            plugin.reload();
         } else if (args[0].equalsIgnoreCase("remove")) {
+            if (args.length < 2) {
+                sender.sendMessage("Usage: /mm remove <game>");
+                return true;
+            }
             MurderMysteryGame game = plugin.getGame(args[1]);
             if (game == null) {
                 sender.sendMessage(ChatColor.RED + "This game doesn't exist");
                 return true;
             }
             // remove game
+            plugin.configLoader.set(args[1], null);
         } else if (args[0].equalsIgnoreCase("edit")) {
+            if (args.length < 4) {
+                sender.sendMessage("Usage: /mm edit <game> <option> <value>");
+                return true;
+            }
             String gameName = args[1];
             if (boolEditOptions.contains(args[2])
                     || intEditOptions.contains(args[2])
                     || args[2].equalsIgnoreCase("weather")) {
                 // set config value to args[3]
+                Object parsed =
+                        boolEditOptions.contains(args[2])
+                                ? Boolean.parseBoolean(args[2])
+                                : intEditOptions.contains(args[2])
+                                        ? Integer.parseInt(args[3])
+                                        : args[2];
+                plugin.configLoader.set(gameName + "." + args[2], parsed);
             } else {
                 if (args[2].equalsIgnoreCase("gamerule")) {
+                    if (args.length < 5) {
+                        sender.sendMessage("Usage: /mm edit <game> gamerule <id> <value>");
+                        return true;
+                    }
                     // set gamerule args[3] to value args[4]
+                    String id = args[3];
+                    boolean value = Boolean.parseBoolean(args[4]);
+                    Map<String, Boolean> currentRules = plugin.configLoader.getGamerules(gameName);
+                    currentRules.put(id, value);
+                    plugin.configLoader.set(gameName + ".gamerules", currentRules);
                 } else if (args[2].equalsIgnoreCase("spawnlocation")) {
+                    if (args.length < 9) {
+                        sender.sendMessage(
+                                "Usage: /mm edit <game> spawnlocation "
+                                        + args[3]
+                                        + " <x> <y> <z> <fx> <fz>");
+                        return true;
+                    }
+                    double x = Double.parseDouble(args[4]);
+                    double y = Double.parseDouble(args[5]);
+                    double z = Double.parseDouble(args[6]);
+                    double fx = Double.parseDouble(args[7]);
+                    double fz = Double.parseDouble(args[8]);
+
+                    List<Map<String, Object>> currentSpawnLocations =
+                            plugin.configLoader.getSpawnLocations(gameName);
+                    Map<String, Object> newSpawnLoc = new LinkedHashMap<>();
+                    newSpawnLoc.put("x", x);
+                    newSpawnLoc.put("y", y);
+                    newSpawnLoc.put("z", z);
+                    newSpawnLoc.put("fx", fx);
+                    newSpawnLoc.put("fz", fz);
                     if (args[3].equalsIgnoreCase("add")) {
                         // Add new entry or update existing with said coords
+                        currentSpawnLocations.add(newSpawnLoc);
                     } else if (args[3].equalsIgnoreCase("remove")) {
                         // Remove specified entry
+                        currentSpawnLocations.remove(newSpawnLoc);
                     }
+                    plugin.configLoader.set(gameName + ".spawnlocations", currentSpawnLocations);
                 } else if (args[2].equalsIgnoreCase("coinlocation")) {
+                    if (args.length < 9) {
+                        sender.sendMessage(
+                                "Usage: /mm edit <game> coinlocation "
+                                        + args[3]
+                                        + " <x> <y> <z> <r>");
+                        return true;
+                    }
+                    double x = Double.parseDouble(args[4]);
+                    double y = Double.parseDouble(args[5]);
+                    double z = Double.parseDouble(args[6]);
+                    double r = Double.parseDouble(args[7]);
+
+                    List<Map<String, Object>> currentCoinLocations =
+                            plugin.configLoader.getSpawnLocations(gameName);
+                    Map<String, Object> newCoinLoc = new LinkedHashMap<>();
+                    newCoinLoc.put("x", x);
+                    newCoinLoc.put("y", y);
+                    newCoinLoc.put("z", z);
+                    newCoinLoc.put("r", r);
                     if (args[3].equalsIgnoreCase("add")) {
                         // Add new entry or update existing with said coords
+                        currentCoinLocations.add(newCoinLoc);
+
                     } else if (args[3].equalsIgnoreCase("remove")) {
                         // Remove specified entry
+                        currentCoinLocations.remove(newCoinLoc);
                     }
+                    plugin.configLoader.set(gameName + ".coinlocations", currentCoinLocations);
                 }
             }
         }

@@ -6,14 +6,16 @@ import org.bukkit.configuration.file.*;
 
 public class ConfigLoader {
     private final PintoMurderMystery pintoMurderMystery;
-    private final FileConfiguration config;
+    private FileConfiguration config;
 
-    public ConfigLoader(PintoMurderMystery pintoMurderMystery, FileConfiguration config) {
+    public ConfigLoader(PintoMurderMystery pintoMurderMystery) {
         this.pintoMurderMystery = pintoMurderMystery;
-        this.config = config;
+        start();
     }
 
-    public void start() {}
+    public void start() {
+        config = pintoMurderMystery.getConfig();
+    }
 
     public Map<String, Boolean> getGamerules(String world) {
         Map<String, Boolean> result = new HashMap<>();
@@ -43,6 +45,18 @@ public class ConfigLoader {
         for (String key : config.getKeys(false))
             if (config.isConfigurationSection(key)) list.add(key);
         return list;
+    }
+
+    public List<Map<String, Object>> getSpawnLocations(String game) {
+        List<Map<String, Object>> finalList = new LinkedList<>();
+        for (Map<?, ?> map : config.getMapList(game + ".spawnlocations")) {
+            try {
+                Map<String, Object> newMap = (Map<String, Object>) map;
+                finalList.add(newMap);
+            } catch (ClassCastException _) {
+            }
+        }
+        return finalList;
     }
 
     private List<ConfigurationSection> getAllSections(FileConfiguration config) {

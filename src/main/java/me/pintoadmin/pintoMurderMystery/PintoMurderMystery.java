@@ -23,13 +23,9 @@ public final class PintoMurderMystery extends JavaPlugin {
         }
 
         // Load classes
-        FileConfiguration config = getConfig();
-        configLoader = new ConfigLoader(this, config);
+        configLoader = new ConfigLoader(this);
 
         new MMCommand();
-
-        // Load config games
-        configLoader.start();
 
         // Initialize Game objects for each game/world
         for (String gameName : configLoader.getEnabledGames()) {
@@ -57,6 +53,13 @@ public final class PintoMurderMystery extends JavaPlugin {
         HandlerList.unregisterAll(gameListeners);
 
         getLogger().info("PintoMurderMystery plugin disabled and cleaned up");
+    }
+
+    public void reload() {
+        onDisable();
+        reloadConfig();
+        configLoader.start();
+        onEnable();
     }
 
     public void debug(String... messages) {
