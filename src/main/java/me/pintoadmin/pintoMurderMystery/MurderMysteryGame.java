@@ -715,6 +715,8 @@ public final class MurderMysteryGame {
 
     private void spawnDeadBody(Player player) {
         Location loc = player.getLocation();
+        Vector newDir = loc.getDirection().rotateAroundY(new Random().nextDouble(PI * 2));
+        loc.setDirection(newDir);
         Mannequin body =
                 loc.getWorld()
                         .spawn(
@@ -727,6 +729,7 @@ public final class MurderMysteryGame {
                                     m.setPose(Pose.SLEEPING);
                                     // Don't get pushed around / fall through anything
                                     m.setImmovable(true);
+                                    m.setCollidable(false);
                                     // Hide the "Mannequin" subtitle shown above vanilla mannequins
                                     m.setHideDescription(true);
                                     // Show all skin layers (hat, jacket, sleeves, pants)
