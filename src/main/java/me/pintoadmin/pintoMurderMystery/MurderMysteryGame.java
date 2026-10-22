@@ -11,6 +11,7 @@ import org.bukkit.configuration.*;
 import org.bukkit.configuration.file.*;
 import org.bukkit.damage.*;
 import org.bukkit.entity.*;
+import org.bukkit.entity.model.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.*;
@@ -53,6 +54,7 @@ public final class MurderMysteryGame {
     private final List<BukkitTask> giveKnifeTasks = new ArrayList<>();
     private final List<ItemDisplay> knifeEntities = new ArrayList<>();
     public final List<Arrow> shotArrows = new ArrayList<>();
+    private final List<Mannequin> deadBodies = new ArrayList<>();
 
     public final ItemStack knife;
     public final ItemStack coin;
@@ -443,6 +445,8 @@ public final class MurderMysteryGame {
                         coinEntities.clear();
                         shotArrows.forEach(Arrow::remove);
                         shotArrows.clear();
+                        deadBodies.forEach(Mannequin::remove);
+                        deadBodies.clear();
                         for (Player player : world.getPlayers()) {
                             innocentTeam.removeEntry(player.getName());
                             murdererTeam.removeEntry(player.getName());
@@ -541,6 +545,8 @@ public final class MurderMysteryGame {
                                                 && playerRoles.get(p) == PlayerRole.MURDERER)
                         .toList();
         if (livingPlayers.isEmpty() || livingMurderers.isEmpty()) end(false);
+
+        spawnDeadBody(player);
 
         new BukkitRunnable() {
             @Override
@@ -705,6 +711,35 @@ public final class MurderMysteryGame {
                     }
                 }.runTask(plugin) // Run on next tick to include the pickedup coin
                 );
+    }
+
+    private void spawnDeadBody(Player player) {
+        Location loc = player.getLocation();
+        Mannequin body =
+                loc.getWorld()
+                        .spawn(
+                                loc,
+                                Mannequin.class,
+                                m -> {
+                                    // Skin: copies the victim's profile (name + textures)
+                                    m.setPlayerProfile(player.getPlayerProfile());
+                                    // Lying down
+                                    m.setPose(Pose.SLEEPING);
+                                    // Don't get pushed around / fall through anything
+                                    m.setImmovable(true);
+                                    // Hide the "Mannequin" subtitle shown above vanilla mannequins
+                                    m.setHideDescription(true);
+                                    // Show all skin layers (hat, jacket, sleeves, pants)
+                                    for (PlayerModelPart part : PlayerModelPart.values()) {
+                                        m.setModelPartShown(part, true);
+                                    }
+                                    m.setMainHand(player.getMainHand());
+                                    m.setGravity(false);
+                                    m.setSilent(true);
+                                    m.setInvulnerable(true);
+                                    m.setCustomNameVisible(false);
+                                });
+        deadBodies.add(body);
     }
 
     /*
