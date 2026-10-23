@@ -234,6 +234,8 @@ public final class MurderMysteryGame {
                         new URI(
                                         "https://textures.minecraft.net/texture/538d5d3d842fe200ae180d28c54238861d581c8629e42ac24c0d4dba3f5aeab4")
                                 .toURL());
+                profile.setTextures(textures);
+                refreshPlayer(player);
             } catch (URISyntaxException | MalformedURLException e) {
                 plugin.getLogger().severe("Could not load skin: " + e.getMessage());
                 e.printStackTrace();
@@ -436,6 +438,10 @@ public final class MurderMysteryGame {
 
                     @Override
                     public void run() {
+                        if(isEnded()) {
+                            this.cancel();
+                            return;
+                        }
                         if (countdown > 0) {
                             if (countdown == 60 || countdown == 30 || countdown == 15) {
                                 world.getPlayers()
@@ -945,5 +951,14 @@ public final class MurderMysteryGame {
         double y = section.getDouble("y");
         double z = section.getDouble("z");
         return new Vector(x, y, z);
+    }
+
+    private void refreshPlayer(Player player) {
+        for (Player onlinePlayer : getPlayingPlayers()) {
+            if (!onlinePlayer.equals(player)) {
+                onlinePlayer.hidePlayer(plugin, player);
+                onlinePlayer.showPlayer(plugin, player);
+            }
+        }
     }
 }
