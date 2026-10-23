@@ -5,11 +5,15 @@ import static java.lang.Math.*;
 import java.net.*;
 import java.util.*;
 import java.util.Random;
+import net.minecraft.network.protocol.game.*;
+import net.minecraft.server.level.*;
+import net.minecraft.server.network.*;
 import org.bukkit.*;
 import org.bukkit.attribute.*;
 import org.bukkit.boss.*;
 import org.bukkit.configuration.*;
 import org.bukkit.configuration.file.*;
+import org.bukkit.craftbukkit.entity.*;
 import org.bukkit.damage.*;
 import org.bukkit.entity.*;
 import org.bukkit.entity.model.*;
@@ -32,6 +36,7 @@ public final class MurderMysteryGame {
     private final World world;
     private final boolean isolatePlayerlists;
     private final Scoreboard scoreboard;
+    private final Objective sidebar;
 
     public enum PlayerState {
         PLAYING,
@@ -87,7 +92,6 @@ public final class MurderMysteryGame {
     private Map<Vector, Double[]> spawnLocations =
             new HashMap<>(); // List of spawn location vectors to facing coords (v[0]=x, v[1]=z)
     private Map<Vector, Integer> coinLocations = new HashMap<>(); // Location to radius
-    private Map<Player, Objective> personalSidebars = new HashMap<>();
 
     // Game status
     private boolean playing;
@@ -108,6 +112,18 @@ public final class MurderMysteryGame {
         murdererTeam.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.FOR_OTHER_TEAMS);
         innocentTeam.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.NEVER);
         murdererTeam.setColor(ChatColor.RED);
+
+        // Init scoreboard sidebar
+        sidebar =
+                scoreboard.registerNewObjective(
+                        "sidebar",
+                        Criteria.DUMMY,
+                        ChatColor.RED + "" + ChatColor.BOLD + "Murder Mystery",
+                        RenderType.INTEGER);
+        sidebar.setDisplaySlot(null);
+
+        sidebar.getScore("").setScore(0);
+        sidebar.getScore(" ").setScore(-3);
 
         init();
         knife = new ItemStack(Material.IRON_SWORD);
@@ -223,6 +239,8 @@ public final class MurderMysteryGame {
                 break;
         }
         world.setTime(timeOfDay);
+
+        sidebar.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         // Teleport all players to a random entry in a config list
         List<Player> playingPlayers =
@@ -514,6 +532,9 @@ public final class MurderMysteryGame {
                         0);
             }
         }
+
+        sidebar.setDisplaySlot(null);
+
         // Teleport all players to end after 3s
         BukkitRunnable cleanupTask =
                 new BukkitRunnable() {
@@ -530,8 +551,6 @@ public final class MurderMysteryGame {
                         shotArrows.clear();
                         deadBodies.forEach(Mannequin::remove);
                         deadBodies.clear();
-                        personalSidebars.values().forEach(Objective::unregister);
-                        personalSidebars.clear();
 
                         // remove all revolver item entities
                         world.getEntities().stream()
@@ -689,30 +708,16 @@ public final class MurderMysteryGame {
     }
 
     private void updateScoreboards() {
+        sidebar.getScore(
+                        ChatColor.YELLOW
+                                + "Living Players: "
+                                + ChatColor.LIGHT_PURPLE
+                                + getPlayingPlayers().size())
+                .setScore(-1);
         for (Player p : getPlayingPlayers()) {
-            if (personalSidebars.containsKey(p)) {
-                personalSidebars.get(p).unregister();
-                personalSidebars.remove(p);
-            }
-
-            Objective sidebar =
-                    scoreboard.registerNewObjective(
-                            "sidebar." + p.getName(),
-                            Criteria.DUMMY,
-                            ChatColor.RED + "" + ChatColor.BOLD + "Murder Mystery",
-                            RenderType.INTEGER);
-            sidebar.setDisplaySlot(DisplaySlot.SIDEBAR);
-
-            sidebar.getScore("").setScore(0);
-            sidebar.getScore(
-                            ChatColor.YELLOW
-                                    + "Living Players: "
-                                    + ChatColor.LIGHT_PURPLE
-                                    + getPlayingPlayers().size())
-                    .setScore(-1);
             String roleString =
                     playerStates.get(p) == PlayerState.SPECTATING
-                            ? ChatColor.WHITE+"SPECTATOR"
+                            ? ChatColor.WHITE + "SPECTATOR"
                             : playerRoles.get(p) == PlayerRole.MURDERER
                                     ? ChatColor.DARK_RED + "MURDERER"
                                     : playerRoles.get(p) == PlayerRole.SHERIFF
@@ -720,10 +725,18 @@ public final class MurderMysteryGame {
                                             : playerRoles.get(p) == PlayerRole.INNOCENT
                                                     ? ChatColor.GREEN + "INNOCENT"
                                                     : "UNKNOWN";
-            sidebar.getScore(ChatColor.YELLOW + "Role: " + roleString).setScore(-2);
-            sidebar.getScore(ChatColor.YELLOW + " ").setScore(-3);
 
-            personalSidebars.put(p, sidebar);
+            ServerPlayer sp = ((CraftPlayer) p).getHandle();
+            ServerGamePacketListenerImpl impl = sp.connection;
+
+            ClientboundSetScorePacket packet =
+                    new ClientboundSetScorePacket(
+                            ChatColor.YELLOW + "Role: " + roleString,
+                            "sidebar",
+                            -2,
+                            Optional.empty(),
+                            Optional.empty());
+            impl.send(packet);
         }
     }
 
