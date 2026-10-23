@@ -701,6 +701,7 @@ public final class MurderMysteryGame {
         new BukkitRunnable() {
             @Override
             public void run() {
+                updateScoreboards();
                 player.setGameMode(GameMode.SPECTATOR);
                 player.teleport(loc);
             }
@@ -708,6 +709,11 @@ public final class MurderMysteryGame {
     }
 
     private void updateScoreboards() {
+        scoreboard.resetScores(
+                ChatColor.YELLOW
+                        + "Living Players: "
+                        + ChatColor.LIGHT_PURPLE
+                        + (getPlayingPlayers().size() + 1));
         sidebar.getScore(
                         ChatColor.YELLOW
                                 + "Living Players: "
