@@ -7,6 +7,7 @@ import java.util.*;
 import java.util.Random;
 import org.bukkit.*;
 import org.bukkit.attribute.*;
+import org.bukkit.boss.*;
 import org.bukkit.configuration.*;
 import org.bukkit.configuration.file.*;
 import org.bukkit.damage.*;
@@ -55,6 +56,7 @@ public final class MurderMysteryGame {
     private final List<ItemDisplay> knifeEntities = new ArrayList<>();
     public final List<Arrow> shotArrows = new ArrayList<>();
     private final List<Mannequin> deadBodies = new ArrayList<>();
+    private BukkitTask startGameTask;
 
     public final ItemStack knife;
     public final ItemStack coin;
@@ -66,6 +68,7 @@ public final class MurderMysteryGame {
     private int murderers;
     private int sheriffs;
     private int maxPlayers;
+    private int minPlayers;
     private int coinsToBow;
     private boolean bowInstaShoot;
     private boolean deathWater;
@@ -143,6 +146,7 @@ public final class MurderMysteryGame {
         murderers = config.getInt("murderers", 2);
         sheriffs = config.getInt("sheriffs", 2);
         maxPlayers = config.getInt("maxplayers", 16);
+        minPlayers = config.getInt("minplayers", 12);
         coinsToBow = config.getInt("coinstobow", 10);
         bowInstaShoot = config.getBoolean("bowinstashoot", false);
         deathWater = config.getBoolean("deathwater", true);
@@ -196,6 +200,7 @@ public final class MurderMysteryGame {
     public void start() {
         playing = true;
         world.setGameRule(GameRule.PVP, false);
+        world.setGameRule(GameRule.IMMEDIATE_RESPAWN, true);
 
         switch (weather) {
             case "rain":
@@ -277,13 +282,14 @@ public final class MurderMysteryGame {
                                 Player randPlayer =
                                         playingPlayers.get(random.nextInt(playingPlayers.size()));
                                 playerRoles.put(randPlayer, PlayerRole.MURDERER);
+                                availablePlayers.remove(randPlayer);
                             }
-                            availablePlayers.removeAll(playerRoles.keySet());
                             for (int i = 0; i < sheriffs; i++) {
                                 Player randPlayer =
                                         availablePlayers.get(
                                                 random.nextInt(availablePlayers.size()));
                                 playerRoles.put(randPlayer, PlayerRole.SHERIFF);
+                                availablePlayers.remove(randPlayer);
                             }
 
                             for (Player player : playingPlayers) {
@@ -553,11 +559,35 @@ public final class MurderMysteryGame {
             }
 
             // Check if game full -> start game
-            if (playerStates.keySet().stream()
-                            .filter(p -> playerStates.get(p) == PlayerState.PLAYING)
-                            .toList()
-                            .size()
-                    >= maxPlayers) start();
+            List<Player> playingPlayers = getPlayingPlayers();
+            if (playingPlayers.size() >= maxPlayers) start();
+            else if (playingPlayers.size() >= minPlayers)
+                startGameTask =
+                        new BukkitRunnable() {
+                            int countdown = 20;
+                            final BossBar bossBar =
+                                    Bukkit.createBossBar(
+                                            "Start timer", BarColor.WHITE, BarStyle.SEGMENTED_20);
+
+                            @Override
+                            public void run() {
+                                List<Player> playingPlayers = getPlayingPlayers();
+                                playingPlayers.forEach(bossBar::addPlayer);
+                                if (playingPlayers.size() >= maxPlayers) {
+                                    playingPlayers.forEach(bossBar::removePlayer);
+                                    this.cancel();
+                                    return;
+                                }
+                                if (countdown > 0) {
+                                    bossBar.setProgress((double) countdown / 20);
+                                    countdown--;
+                                } else {
+                                    playingPlayers.forEach(bossBar::removePlayer);
+                                    start();
+                                    this.cancel();
+                                }
+                            }
+                        }.runTaskTimer(plugin, 0L, 20L);
         }
         // if so add as spec
         else playerStates.put(player, PlayerState.SPECTATING);
@@ -636,7 +666,6 @@ public final class MurderMysteryGame {
         new BukkitRunnable() {
             @Override
             public void run() {
-                player.spigot().respawn();
                 player.setGameMode(GameMode.SPECTATOR);
                 player.teleport(loc);
             }
@@ -783,7 +812,8 @@ public final class MurderMysteryGame {
                         ItemStack toBowCoins = coin.clone();
                         toBowCoins.setAmount(coinsToBow);
 
-                        if (playerRoles.get(player) != PlayerRole.MURDERER) {
+                        if (playerRoles.get(player) != null
+                                && playerRoles.get(player) != PlayerRole.MURDERER) {
                             if (!player.getInventory().contains(zapper)
                                     && !player.getInventory().contains(revolver)
                                     && !player.getInventory().contains(revolverLoaded)) {
@@ -874,6 +904,36 @@ public final class MurderMysteryGame {
 
     public boolean isEnded() {
         return ended;
+    }
+
+    public List<Player> getMurderers() {
+        return playerRoles.keySet().stream()
+                .filter(p -> playerRoles.get(p) == PlayerRole.MURDERER)
+                .toList();
+    }
+
+    public List<Player> getSheriffs() {
+        return playerRoles.keySet().stream()
+                .filter(p -> playerRoles.get(p) == PlayerRole.SHERIFF)
+                .toList();
+    }
+
+    public List<Player> getInnocents() {
+        return playerRoles.keySet().stream()
+                .filter(p -> playerRoles.get(p) == PlayerRole.INNOCENT)
+                .toList();
+    }
+
+    public List<Player> getPlayingPlayers() {
+        return playerStates.keySet().stream()
+                .filter(p -> playerStates.get(p) == PlayerState.PLAYING)
+                .toList();
+    }
+
+    public List<Player> getSpectators() {
+        return playerStates.keySet().stream()
+                .filter(p -> playerStates.get(p) == PlayerState.SPECTATING)
+                .toList();
     }
 
     // Utility methods

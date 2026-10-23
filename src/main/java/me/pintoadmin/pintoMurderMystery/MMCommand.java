@@ -26,6 +26,7 @@ public class MMCommand implements CommandExecutor {
                     "murderers",
                     "sheriffs",
                     "maxplayers",
+                    "minplayers",
                     "coinstobow",
                     "timeofday",
                     "timelimit");

@@ -50,7 +50,8 @@ bridge1: # world name - can be anything
   graceperiod: 15 # Amount of time between the 'start' of the game and when roles get assigned (in seconds)
   murderers: 2 # Number of murderers in the game
   sheriffs: 2 # Number of sheriffs in the game
-  maxplayers: 16 # Number of players the game can hold. Will only start when this number is reached
+  maxplayers: 16 # Number of players the game can hold. Will start automatically when this number is reached
+  minplayers: 12 # Number of players to start the countdown for.
 
   coinstobow: 10 # Number of coins a player needs to get a bow
   bowinstashoot: false # If left-clicking with a bow should shoot instantly with a perfect trajectory
