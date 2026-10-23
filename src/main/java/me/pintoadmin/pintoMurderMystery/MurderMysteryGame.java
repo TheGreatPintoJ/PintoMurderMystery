@@ -552,7 +552,7 @@ public final class MurderMysteryGame {
                         deadBodies.forEach(Mannequin::remove);
                         deadBodies.clear();
 
-                        murdererTeam.setColor(ChatColor.RESET);
+                        murdererTeam.setColor(ChatColor.WHITE);
 
                         // remove all revolver item entities
                         world.getEntities().stream()
@@ -711,11 +711,12 @@ public final class MurderMysteryGame {
     }
 
     private void updateScoreboards() {
-        scoreboard.resetScores(
-                ChatColor.YELLOW
-                        + "Living Players: "
-                        + ChatColor.LIGHT_PURPLE
-                        + (getPlayingPlayers().size() + 1));
+        for (int i = 0; i <= maxPlayers; i++)
+            scoreboard.resetScores(
+                    ChatColor.YELLOW
+                            + "Living Players: "
+                            + ChatColor.LIGHT_PURPLE
+                            + (getPlayingPlayers().size() + i));
         sidebar.getScore(
                         ChatColor.YELLOW
                                 + "Living Players: "
