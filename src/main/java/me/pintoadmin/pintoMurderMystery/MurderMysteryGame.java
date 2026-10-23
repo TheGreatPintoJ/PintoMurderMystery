@@ -111,7 +111,6 @@ public final class MurderMysteryGame {
         murdererTeam = scoreboard.registerNewTeam("murderers");
         murdererTeam.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.FOR_OTHER_TEAMS);
         innocentTeam.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.NEVER);
-        murdererTeam.setColor(ChatColor.RED);
 
         // Init scoreboard sidebar
         sidebar =
@@ -499,6 +498,7 @@ public final class MurderMysteryGame {
                                         playerRoles.get(p) == PlayerRole.MURDERER
                                                 && playerStates.get(p) == PlayerState.PLAYING)
                         .toList();
+        murdererTeam.setColor(ChatColor.RED);
         livingMurderers.forEach(
                 p ->
                         p.addPotionEffect(
@@ -551,6 +551,8 @@ public final class MurderMysteryGame {
                         shotArrows.clear();
                         deadBodies.forEach(Mannequin::remove);
                         deadBodies.clear();
+
+                        murdererTeam.setColor(ChatColor.RESET);
 
                         // remove all revolver item entities
                         world.getEntities().stream()
@@ -751,7 +753,7 @@ public final class MurderMysteryGame {
                             + " murderers - "
                             + sheriffs
                             + " sherrifs - "
-                            + (maxPlayers - murderers)
+                            + (maxPlayers - murderers - sheriffs)
                             + " innocents";
 
             p.setPlayerListHeader(ChatColor.RED + "" + ChatColor.BOLD + "Murder Mystery");
