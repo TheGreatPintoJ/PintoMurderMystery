@@ -87,6 +87,7 @@ public final class MurderMysteryGame {
     private Map<Vector, Double[]> spawnLocations =
             new HashMap<>(); // List of spawn location vectors to facing coords (v[0]=x, v[1]=z)
     private Map<Vector, Integer> coinLocations = new HashMap<>(); // Location to radius
+    private Map<Player, Objective> personalSidebars = new HashMap<>();
 
     // Game status
     private boolean playing;
@@ -354,6 +355,7 @@ public final class MurderMysteryGame {
                                     player.getInventory().addItem(new ItemStack(Material.ARROW));
                                 }
                             }
+                            updateScoreboards();
                             world.setGameRule(GameRule.PVP, true);
                             this.cancel();
                         }
@@ -528,6 +530,8 @@ public final class MurderMysteryGame {
                         shotArrows.clear();
                         deadBodies.forEach(Mannequin::remove);
                         deadBodies.clear();
+                        personalSidebars.values().forEach(Objective::unregister);
+                        personalSidebars.clear();
 
                         // remove all revolver item entities
                         world.getEntities().stream()
@@ -682,6 +686,45 @@ public final class MurderMysteryGame {
                 player.teleport(loc);
             }
         }.runTask(plugin);
+    }
+
+    private void updateScoreboards() {
+        for (Player p : getPlayingPlayers()) {
+            if (personalSidebars.containsKey(p)) {
+                personalSidebars.get(p).unregister();
+                personalSidebars.remove(p);
+            }
+
+            Objective sidebar =
+                    scoreboard.registerNewObjective(
+                            "sidebar." + p.getName(),
+                            Criteria.DUMMY,
+                            ChatColor.RED + "" + ChatColor.BOLD + "Murder Mystery",
+                            RenderType.INTEGER);
+            sidebar.setDisplaySlot(DisplaySlot.SIDEBAR);
+
+            sidebar.getScore("").setScore(0);
+            sidebar.getScore(
+                            ChatColor.YELLOW
+                                    + "Living Players: "
+                                    + ChatColor.LIGHT_PURPLE
+                                    + getPlayingPlayers().size())
+                    .setScore(-1);
+            String roleString =
+                    playerStates.get(p) == PlayerState.SPECTATING
+                            ? ChatColor.WHITE+"SPECTATOR"
+                            : playerRoles.get(p) == PlayerRole.MURDERER
+                                    ? ChatColor.DARK_RED + "MURDERER"
+                                    : playerRoles.get(p) == PlayerRole.SHERIFF
+                                            ? ChatColor.AQUA + "SHERIFF"
+                                            : playerRoles.get(p) == PlayerRole.INNOCENT
+                                                    ? ChatColor.GREEN + "INNOCENT"
+                                                    : "UNKNOWN";
+            sidebar.getScore(ChatColor.YELLOW + "Role: " + roleString).setScore(-2);
+            sidebar.getScore(ChatColor.YELLOW + " ").setScore(-3);
+
+            personalSidebars.put(p, sidebar);
+        }
     }
 
     public void damaged(Player victim, Player attacker, EntityDamageByEntityEvent event) {
