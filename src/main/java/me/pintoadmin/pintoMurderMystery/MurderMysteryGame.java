@@ -743,6 +743,19 @@ public final class MurderMysteryGame {
                             Optional.empty(),
                             Optional.empty());
             impl.send(packet);
+
+            String settingsString =
+                    ChatColor.RED
+                            + " - "
+                            + murderers
+                            + " murderers - "
+                            + sheriffs
+                            + " sherrifs - "
+                            + (maxPlayers - murderers)
+                            + " innocents";
+
+            p.setPlayerListHeader(ChatColor.RED + "" + ChatColor.BOLD + "Murder Mystery");
+            p.setPlayerListFooter(ChatColor.YELLOW + "Your role: " + roleString + settingsString);
         }
     }
 
