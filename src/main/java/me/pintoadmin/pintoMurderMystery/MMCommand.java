@@ -29,7 +29,9 @@ public class MMCommand implements CommandExecutor {
                     "minplayers",
                     "coinstobow",
                     "timeofday",
-                    "timelimit");
+                    "timelimit",
+                    "knifecooldown",
+                    "knifespeed");
     List<String> otherEditOptions =
             new ArrayList<>(
                     List.of("weather", "gamerule", "endlocation", "spawnlocation", "coinlocation"));

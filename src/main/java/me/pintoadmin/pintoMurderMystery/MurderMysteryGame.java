@@ -77,6 +77,8 @@ public final class MurderMysteryGame {
     private int maxCoins;
     private boolean wrongGuessKills;
     private int timeLimit;
+    private int knifeCooldown;
+    private double knifeSpeed;
 
     private long timeOfDay;
     private String weather;
@@ -154,6 +156,9 @@ public final class MurderMysteryGame {
         canDropItems = config.getBoolean("candropitems", false);
         maxCoins = config.getInt("maxcoins", 200);
         timeLimit = config.getInt("timelimit", 600);
+
+        knifeCooldown = config.getInt("knifecooldown", 5);
+        knifeSpeed = config.getDouble("knifespeed", 1);
 
         timeOfDay = config.getLong("timeofday", 6000);
         weather = config.getString("weather", "clear");
@@ -538,7 +543,7 @@ public final class MurderMysteryGame {
                             player.teleport(endLocation);
                             player.setGameMode(GameMode.SURVIVAL);
                             player.getInventory().clear();
-                            if (endLocation.getWorld() == world) join(player);
+                            if (endLocation.getWorld() == world && !force) join(player);
                         }
                         playerRoles.clear();
                         ended = false;
@@ -718,7 +723,7 @@ public final class MurderMysteryGame {
 
         runningTasks.add(
                 new BukkitRunnable() {
-                    float angle = 0f;
+                    double angle = 0f;
                     Location eyeLoc = player.getEyeLocation();
                     float yawRad = (float) toRadians(eyeLoc.getYaw());
                     Vector direction = player.getLocation().getDirection();
@@ -749,10 +754,16 @@ public final class MurderMysteryGame {
                                 knifeEntity
                                         .getLocation()
                                         .add(
-                                                direction.divide(
-                                                        new Vector(1, 1, 1)))); // Movement speed
+                                                direction
+                                                        .clone()
+                                                        .multiply(
+                                                                new Vector(
+                                                                        knifeSpeed,
+                                                                        knifeSpeed,
+                                                                        knifeSpeed)))); // Movement
+                        // speed
 
-                        angle += (float) PI / 3; // Rotation speed
+                        angle -= PI / (3 / knifeSpeed); // Rotation speed
                         if (angle >= PI * 2) {
                             angle = 0f;
                         }
@@ -764,7 +775,7 @@ public final class MurderMysteryGame {
                                         .rotateY(
                                                 (float) (-yawRad - (PI / 2))) // point toward facing
                                         .translate(pivot)
-                                        .rotateZ(angle)
+                                        .rotateZ((float) angle)
                                         .translate(-pivot.x, -pivot.y, -pivot.z);
 
                         knifeEntity.setTransformationMatrix(matrix);
@@ -777,7 +788,7 @@ public final class MurderMysteryGame {
 
         giveKnifeTasks.add(
                 new BukkitRunnable() {
-                    int countdown = 5; // seconds
+                    int countdown = knifeCooldown; // seconds
 
                     @Override
                     public void run() {

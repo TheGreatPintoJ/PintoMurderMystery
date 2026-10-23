@@ -59,6 +59,9 @@ bridge1: # world name - can be anything
   wrongguesskills: true # If the sheriff or innocents try shooting a non-murderer, will they die instead of the other innocent?
   timelimit: 600 # At what time the game ends, regardless of murderers dead. in seconds
 
+  knifecooldown: 5 # Cooldown between throwing knife
+  knifespeed: 1.0 # Speed of the thrown knife
+
   candropitems: false # whether players are allowed to drop items
 
   gamerules: # Set boolean gamerules
