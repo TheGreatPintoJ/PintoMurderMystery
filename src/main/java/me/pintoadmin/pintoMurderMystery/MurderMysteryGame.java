@@ -532,6 +532,7 @@ public final class MurderMysteryGame {
                             player.teleport(endLocation);
                             player.setGameMode(GameMode.SURVIVAL);
                             player.getInventory().clear();
+                            if (endLocation.getWorld() == world) join(player);
                         }
                         playerRoles.clear();
                         ended = false;
