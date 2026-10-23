@@ -59,6 +59,8 @@ public final class MurderMysteryGame {
     public final ItemStack knife;
     public final ItemStack coin;
     public final ItemStack zapper;
+    public final ItemStack revolver;
+    public final ItemStack revolverLoaded;
     // Game settings
     private int gracePeriod;
     private int murderers;
@@ -116,8 +118,21 @@ public final class MurderMysteryGame {
         zapper = new ItemStack(Material.BOW);
         meta = zapper.getItemMeta();
         assert meta != null;
-        meta.setItemName(ChatColor.AQUA + "Zapper");
+        meta.setItemName(ChatColor.GREEN + "Zapper");
         zapper.setItemMeta(meta);
+
+        revolver = new ItemStack(Material.CROSSBOW);
+        CrossbowMeta cmeta = (CrossbowMeta) revolver.getItemMeta();
+        assert cmeta != null;
+        cmeta.setItemName(ChatColor.AQUA + "Revolver");
+        revolver.setItemMeta(cmeta);
+
+        revolverLoaded = new ItemStack(Material.CROSSBOW);
+        cmeta = (CrossbowMeta) revolverLoaded.getItemMeta();
+        assert cmeta != null;
+        cmeta.setItemName(ChatColor.AQUA + "Revolver");
+        cmeta.setChargedProjectiles(List.of(new ItemStack(Material.ARROW)));
+        revolverLoaded.setItemMeta(cmeta);
     }
 
     // Game operation methods
@@ -320,7 +335,7 @@ public final class MurderMysteryGame {
                                             0,
                                             60,
                                             0);
-                                    player.getInventory().addItem(zapper);
+                                    player.getInventory().addItem(revolver);
                                     player.getInventory().addItem(new ItemStack(Material.ARROW));
                                 }
                             }
@@ -460,6 +475,15 @@ public final class MurderMysteryGame {
                         shotArrows.clear();
                         deadBodies.forEach(Mannequin::remove);
                         deadBodies.clear();
+
+                        // remove all revolver item entities
+                        world.getEntities().stream()
+                                .filter(
+                                        e ->
+                                                e instanceof Item i
+                                                        && i.getItemStack() == revolverLoaded)
+                                .forEach(Entity::remove);
+
                         for (Player player : world.getPlayers()) {
                             innocentTeam.removeEntry(player.getName());
                             murdererTeam.removeEntry(player.getName());
@@ -558,6 +582,18 @@ public final class MurderMysteryGame {
                                                 && playerRoles.get(p) == PlayerRole.MURDERER)
                         .toList();
         if (livingPlayers.isEmpty() || livingMurderers.isEmpty()) end(false);
+
+        if (playerRoles.get(player) == PlayerRole.SHERIFF) {
+            world.spawn(
+                    loc,
+                    Item.class,
+                    i -> {
+                        i.setItemStack(revolverLoaded);
+                        i.setVelocity(new Vector(0, 0, 0));
+                        i.setThrower(player.getUniqueId());
+                        i.setPickupDelay(0);
+                    });
+        }
 
         spawnDeadBody(player);
 
@@ -712,10 +748,13 @@ public final class MurderMysteryGame {
                         toBowCoins.setAmount(coinsToBow);
 
                         if (playerRoles.get(player) != PlayerRole.MURDERER) {
-                            if (!player.getInventory().contains(zapper)) {
+                            if (!player.getInventory().contains(zapper)
+                                    && !player.getInventory().contains(revolver)
+                                    && !player.getInventory().contains(revolverLoaded)) {
                                 player.getInventory().addItem(zapper);
                             }
-                            if (!(player.getInventory().contains(Material.ARROW)
+                            if (!((player.getInventory().contains(Material.ARROW)
+                                            && player.getInventory().contains(revolverLoaded))
                                     && wrongGuessKills)) {
                                 player.getInventory().addItem(new ItemStack(Material.ARROW));
                                 player.getInventory().removeItem(toBowCoins);
@@ -758,9 +797,22 @@ public final class MurderMysteryGame {
         deadBodies.add(body);
     }
 
-    /*
-    public void newSheriff(Player player)
-     */
+    public void newSheriff(Player player, EntityPickupItemEvent event) {
+        if (playerRoles.get(player) == PlayerRole.MURDERER) {
+            event.setCancelled(true);
+            return;
+        }
+        playerRoles.put(player, PlayerRole.SHERIFF);
+
+        player.sendTitle(
+                "",
+                ChatColor.AQUA
+                        + "You have picked up the sheriff's revolver. You are now the sheriff.",
+                10,
+                60,
+                40);
+        player.playSound(player, Sound.BLOCK_BELL_USE, 0.5f, 0.2f);
+    }
 
     // Game properties getters
     public boolean canDrop() {

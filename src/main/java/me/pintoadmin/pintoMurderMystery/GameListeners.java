@@ -4,6 +4,7 @@ import static org.bukkit.Bukkit.getServer;
 
 import java.util.*;
 import org.bukkit.*;
+import org.bukkit.advancement.*;
 import org.bukkit.block.*;
 import org.bukkit.damage.*;
 import org.bukkit.entity.*;
@@ -170,7 +171,9 @@ public class GameListeners implements Listener {
         MurderMysteryGame game = plugin.getGame(player.getWorld().getName());
         if (game == null) return;
         if (event.getItem() == null) return;
-        if (!player.getInventory().getItemInMainHand().isSimilar(game.zapper)
+        if (!(player.getInventory().getItemInMainHand().isSimilar(game.zapper)
+                        || player.getInventory().getItemInMainHand().isSimilar(game.revolver)
+                        || player.getInventory().getItemInMainHand().isSimilar(game.revolverLoaded))
                 && event.getAction().name().contains("RIGHT_CLICK")) {
             event.setCancelled(true);
             if (event.getItem().isSimilar(game.knife)) game.tryThrowKnife(player);
@@ -196,6 +199,7 @@ public class GameListeners implements Listener {
         MurderMysteryGame game = plugin.getGame(p.getWorld().getName());
         if (game == null) return;
         if (e.getItem().getItemStack().isSimilar(game.coin)) game.pickupCoin(p, e.getItem());
+        if (e.getItem().getItemStack().isSimilar(game.revolverLoaded)) game.newSheriff(p, e);
     }
 
     @EventHandler
