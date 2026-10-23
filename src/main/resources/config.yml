@@ -56,6 +56,7 @@ bridge1: # world name - can be anything
   bowinstashoot: false # If left-clicking with a bow should shoot instantly with a perfect trajectory
   deathwater: true # If the player takes damage while in water
   wrongguesskills: true # If the sheriff or innocents try shooting a non-murderer, will they die instead of the other innocent?
+  timelimit: 600 # At what time the game ends, regardless of murderers dead. in seconds
 
   candropitems: false # whether players are allowed to drop items
 

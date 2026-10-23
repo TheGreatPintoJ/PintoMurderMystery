@@ -27,7 +27,8 @@ public class MMCommand implements CommandExecutor {
                     "sheriffs",
                     "maxplayers",
                     "coinstobow",
-                    "timeofday");
+                    "timeofday",
+                    "timelimit");
     List<String> otherEditOptions =
             new ArrayList<>(
                     List.of("weather", "gamerule", "endlocation", "spawnlocation", "coinlocation"));

@@ -72,6 +72,8 @@ public final class MurderMysteryGame {
     private boolean canDropItems;
     private int coinSpawnFrequency;
     private int maxCoins;
+    private boolean wrongGuessKills;
+    private int timeLimit;
 
     private long timeOfDay;
     private String weather;
@@ -80,7 +82,6 @@ public final class MurderMysteryGame {
     private Map<Vector, Double[]> spawnLocations =
             new HashMap<>(); // List of spawn location vectors to facing coords (v[0]=x, v[1]=z)
     private Map<Vector, Integer> coinLocations = new HashMap<>(); // Location to radius
-    private boolean wrongGuessKills = true;
 
     // Game status
     private boolean playing;
@@ -146,8 +147,9 @@ public final class MurderMysteryGame {
         bowInstaShoot = config.getBoolean("bowinstashoot", false);
         deathWater = config.getBoolean("deathwater", true);
         wrongGuessKills = config.getBoolean("wrongguesskills", true);
-        canDropItems = config.getBoolean("candrop", false);
+        canDropItems = config.getBoolean("candropitems", false);
         maxCoins = config.getInt("maxcoins", 200);
+        timeLimit = config.getInt("timelimit", 600);
 
         timeOfDay = config.getLong("timeofday", 6000);
         weather = config.getString("weather", "clear");
@@ -421,6 +423,32 @@ public final class MurderMysteryGame {
                             }
                         }
                     }.runTaskTimer(plugin, 0L, 10L));
+
+        runningTasks.add(
+                new BukkitRunnable() {
+                    int countdown = timeLimit;
+
+                    @Override
+                    public void run() {
+                        if (countdown > 0) {
+                            if (countdown == 60 || countdown == 30 || countdown == 15) {
+                                world.getPlayers()
+                                        .forEach(
+                                                p ->
+                                                        p.sendMessage(
+                                                                ChatColor.YELLOW
+                                                                        + "Time is running out! Only "
+                                                                        + countdown
+                                                                        + " seconds left."));
+                            }
+                            countdown--;
+                        } else {
+                            end(false);
+                            this.cancel();
+                        }
+                    }
+                }.runTaskTimer(plugin, 0L, 20L) // Run every second for timelimit duration
+                );
     }
 
     public void end(boolean force) {
@@ -438,9 +466,17 @@ public final class MurderMysteryGame {
                 p ->
                         p.addPotionEffect(
                                 new PotionEffect(PotionEffectType.GLOWING, 60, 1, false, false)));
+        List<Player> livingInnocents =
+                playerRoles.keySet().stream()
+                        .filter(
+                                p ->
+                                        playerRoles.get(p) != PlayerRole.MURDERER
+                                                && playerStates.get(p) == PlayerState.PLAYING)
+                        .toList();
         // Announce who won
         List<Player> allPlayers = playerRoles.keySet().stream().toList();
-        if (livingMurderers.isEmpty()) {
+
+        if (livingMurderers.isEmpty() || !livingInnocents.isEmpty()) {
             for (Player player : allPlayers) {
                 player.sendTitle(
                         ChatColor.GREEN + "INNOCENTS WIN",
