@@ -852,6 +852,7 @@ public final class MurderMysteryGame {
                                     // Don't get pushed around / fall through anything
                                     m.setImmovable(true);
                                     m.setCollidable(false);
+                                    m.getCollidableExemptions().clear();
                                     // Hide the "Mannequin" subtitle shown above vanilla mannequins
                                     m.setHideDescription(true);
                                     // Show all skin layers (hat, jacket, sleeves, pants)
