@@ -2,21 +2,16 @@ package me.pintoadmin.pintoMurderMystery;
 
 import static org.bukkit.Bukkit.getServer;
 
-import java.util.*;
 import org.bukkit.*;
-import org.bukkit.advancement.*;
 import org.bukkit.block.*;
 import org.bukkit.damage.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.*;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
-import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
-import org.bukkit.inventory.*;
 import org.bukkit.plugin.*;
 import org.bukkit.scheduler.*;
-import org.bukkit.scoreboard.*;
 
 public class GameListeners implements Listener {
     private final PintoMurderMystery plugin;
@@ -176,7 +171,7 @@ public class GameListeners implements Listener {
                         || player.getInventory().getItemInMainHand().isSimilar(game.revolverLoaded))
                 && event.getAction().name().contains("RIGHT_CLICK")) {
             event.setCancelled(true);
-            if (event.getItem().isSimilar(game.knife)) game.tryThrowKnife(player);
+            if (event.getItem().isSimilar(game.knife)) game.throwKnife(player);
         }
 
         if (event.getAction().name().contains("LEFT_CLICK")
@@ -191,6 +186,18 @@ public class GameListeners implements Listener {
         if (!(event.getProjectile() instanceof Arrow arrow)) return;
         arrow.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
         game.shotArrows.add(arrow);
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (player.getInventory().getItemInMainHand().isSimilar(game.revolver))
+                    game.playAllSoundReplace(
+                            player,
+                            Sound.ENTITY_LIGHTNING_BOLT_IMPACT,
+                            Sound.ITEM_CROSSBOW_SHOOT,
+                            1f,
+                            0.1f);
+            }
+        }.runTask(plugin);
     }
 
     @EventHandler

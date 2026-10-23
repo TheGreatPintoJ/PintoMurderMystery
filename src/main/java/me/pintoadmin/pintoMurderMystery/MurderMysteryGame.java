@@ -438,7 +438,7 @@ public final class MurderMysteryGame {
 
                     @Override
                     public void run() {
-                        if(isEnded()) {
+                        if (isEnded()) {
                             this.cancel();
                             return;
                         }
@@ -689,9 +689,7 @@ public final class MurderMysteryGame {
                 && playerRoles.get(victim) != PlayerRole.MURDERER
                 && attacker.getInventory().getItemInMainHand().isSimilar(knife)) {
             victim.damage(victim.getAttribute(Attribute.MAX_HEALTH).getValue());
-            playerStates.keySet().stream()
-                    .filter(p -> playerStates.get(p) != PlayerState.LEFT)
-                    .forEach(p -> p.playSound(p, Sound.ENTITY_PLAYER_HURT, 0.5f, 0.1f));
+            playAllSound(Sound.ENTITY_PLAYER_HURT, 0.5f, 0.1f);
         } else if (playerRoles.get(attacker) != PlayerRole.MURDERER) {
             if (event.getDamageSource().getDamageType() != DamageType.ARROW) return;
             event.getDamageSource().getDirectEntity().remove();
@@ -702,10 +700,7 @@ public final class MurderMysteryGame {
         }
     }
 
-    public void tryThrowKnife(Player player) {
-        if (playerRoles.get(player) != PlayerRole.MURDERER) return;
-        // is murderer, is holding knife
-
+    public void throwKnife(Player player) {
         ItemDisplay knifeEntity =
                 world.spawn(
                         player.getEyeLocation(),
@@ -716,6 +711,8 @@ public final class MurderMysteryGame {
                             e.setInterpolationDuration(1);
                             e.setInterpolationDelay(0);
                         });
+
+        player.playSound(player, Sound.ITEM_TRIDENT_THROW, 0.5f, 0.8f);
 
         knifeEntities.add(knifeEntity);
 
@@ -959,6 +956,26 @@ public final class MurderMysteryGame {
                 onlinePlayer.hidePlayer(plugin, player);
                 onlinePlayer.showPlayer(plugin, player);
             }
+        }
+    }
+
+    public void playAllSoundReplace(
+            Entity entity, Sound sound, Sound replaced, float volume, float pitch) {
+        for (Player p : world.getPlayers()) {
+            if (replaced != null) p.stopSound(replaced);
+            p.playSound(entity, sound, volume, pitch);
+        }
+    }
+
+    public void playAllSound(Sound sound, float volume, float pitch) {
+        for (Player p : world.getPlayers()) {
+            p.playSound(p, sound, volume, pitch);
+        }
+    }
+
+    public void playAllSound(Entity entity, Sound sound, float volume, float pitch) {
+        for (Player p : world.getPlayers()) {
+            p.playSound(entity, sound, volume, pitch);
         }
     }
 }
