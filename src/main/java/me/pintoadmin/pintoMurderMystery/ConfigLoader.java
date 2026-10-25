@@ -1,5 +1,7 @@
 package me.pintoadmin.pintoMurderMystery;
 
+import java.io.*;
+import java.nio.charset.*;
 import java.util.*;
 import org.bukkit.configuration.*;
 import org.bukkit.configuration.file.*;
@@ -73,5 +75,22 @@ public class ConfigLoader {
     public void set(String path, Object value) {
         config.set(path, value);
         pintoMurderMystery.saveConfig();
+    }
+
+    public void newGame(String name) {
+        try (InputStream inputStream = pintoMurderMystery.getResource("config.yml")) {
+            if (inputStream == null) {
+                pintoMurderMystery.getLogger().severe("Failed to load resource config");
+            }
+            try (Reader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+                FileConfiguration defConfig = YamlConfiguration.loadConfiguration(reader);
+                set(name, defConfig.get("murdermystery"));
+            }
+        } catch (Exception e) {
+            pintoMurderMystery
+                    .getLogger()
+                    .severe("Failed to load resource config: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

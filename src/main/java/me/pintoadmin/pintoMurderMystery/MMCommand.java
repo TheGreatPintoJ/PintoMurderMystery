@@ -77,6 +77,13 @@ public class MMCommand implements CommandExecutor {
             }
             // remove game
             plugin.configLoader.set(args[1], null);
+        } else if (args[0].equalsIgnoreCase("new")) {
+            if (args.length < 2) {
+                sender.sendMessage("Usage: /mm new <name>");
+                return true;
+            }
+            // add game
+            plugin.configLoader.newGame(args[1]);
         } else if (args[0].equalsIgnoreCase("edit")) {
             if (args.length < 4) {
                 sender.sendMessage("Usage: /mm edit <game> <option> <value>");
@@ -187,7 +194,7 @@ public class MMCommand implements CommandExecutor {
 
             try {
                 if (args.length == 1) {
-                    finalList.addAll(List.of("reload", "edit", "remove"));
+                    finalList.addAll(List.of("reload", "edit", "remove", "new"));
                 } else if (args.length == 2) {
                     if (!args[0].equalsIgnoreCase("reload")) {
                         finalList.addAll(plugin.configLoader.getAllGames());

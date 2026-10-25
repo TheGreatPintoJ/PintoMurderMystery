@@ -1,42 +1,29 @@
 isolatedplayerlist: false # whether player's not actively playing will show up on the tablist/playerlist
-bridge1: # world name - can be anything
+murdermystery: # world name - can be anything
   enabled: false
 
   spawnlocations:
-    - x: X # XYZ coordinates of the spawn location
-      y: X
-      z: X
-      fx: X # XZ coordinates for the player to be facing
-      fz: X
-    - x: X
-      y: X
-      z: X
-      fx: X
-      fz: X
-    - x: X
-      y: X
-      z: X
-      fx: X
-      fz: X
-    - x: X
-      y: X
-      z: X
-      fx: X
-      fz: X
+    - x: 26.5 # XYZ coordinates of the spawn location
+      y: 77.1
+      z: -15.5
+      fx: 0.0 # XZ coordinates for the player to be facing
+      fz: 26.5
+    - x: -10.5
+      y: 71.1
+      z: -31.5
+      fx: -10.5
+      fz: -41.5
+    - x: -23.5
+      y: 65.1
+      z: -22.5
+      fx: -13.5
+      fz: -22.5
 
   coinlocations:
-    - x: X
-      y: Y
-      z: Z
-      r: R
-    - x: X
-      y: Y
-      z: Z
-      r: R
-    - x: X
-      y: Y
-      z: Z
-      r: R
+    - x: -15.5
+      y: 66.0
+      z: -22.5
+      r: 5
 
   coinspawnfrequency: 40 # how often a gold will spawn at a random location in ticks. for balancing, this number should be lower corresponding to higher amounts of possible locations
   maxcoins: 200 # how many coins will be allowed to exist before all get cleared
