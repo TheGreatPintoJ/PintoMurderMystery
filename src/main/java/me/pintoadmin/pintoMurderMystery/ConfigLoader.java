@@ -61,6 +61,18 @@ public class ConfigLoader {
         return finalList;
     }
 
+    public List<Map<String, Object>> getCoinLocations(String game) {
+        List<Map<String, Object>> finalList = new LinkedList<>();
+        for (Map<?, ?> map : config.getMapList(game + ".coinlocations")) {
+            try {
+                Map<String, Object> newMap = (Map<String, Object>) map;
+                finalList.add(newMap);
+            } catch (ClassCastException _) {
+            }
+        }
+        return finalList;
+    }
+
     private List<ConfigurationSection> getAllSections(FileConfiguration config) {
         List<ConfigurationSection> finalList = new ArrayList<>();
         for (String key : config.getKeys(false)) {

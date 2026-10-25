@@ -5,6 +5,7 @@ import java.util.stream.*;
 import org.bukkit.*;
 import org.bukkit.GameRule;
 import org.bukkit.command.*;
+import org.bukkit.entity.*;
 import org.bukkit.util.Vector;
 
 public class MMCommand implements CommandExecutor {
@@ -115,6 +116,27 @@ public class MMCommand implements CommandExecutor {
                     plugin.configLoader.set(gameName + ".gamerules", currentRules);
                 } else if (args[2].equalsIgnoreCase("spawnlocation")) {
                     if (args.length < 9) {
+                        if (args.length == 5
+                                && args[3].equalsIgnoreCase("add")
+                                && args[4].equalsIgnoreCase("here")) {
+                            if (!(sender instanceof Player p)) {
+                                sender.sendMessage("Only players can use 'here'");
+                                return true;
+                            }
+                            List<Map<String, Object>> currentSpawnLocations =
+                                    plugin.configLoader.getSpawnLocations(gameName);
+                            Location pLoc = p.getLocation();
+                            Map<String, Object> newSpawnLoc = new LinkedHashMap<>();
+                            newSpawnLoc.put("x", Math.round(pLoc.getX() * 10) / 10.0);
+                            newSpawnLoc.put("y", Math.round(pLoc.getY() * 10) / 10.0);
+                            newSpawnLoc.put("z", Math.round(pLoc.getZ() * 10) / 10.0);
+                            newSpawnLoc.put("fx", p.getTargetBlockExact(999).getX() + 0.5);
+                            newSpawnLoc.put("fz", p.getTargetBlockExact(999).getZ() + 0.5);
+                            currentSpawnLocations.add(newSpawnLoc);
+                            plugin.configLoader.set(
+                                    gameName + ".spawnlocations", currentSpawnLocations);
+                            return true;
+                        }
                         sender.sendMessage(
                                 "Usage: /mm edit <game> spawnlocation "
                                         + args[3]
@@ -145,6 +167,26 @@ public class MMCommand implements CommandExecutor {
                     plugin.configLoader.set(gameName + ".spawnlocations", currentSpawnLocations);
                 } else if (args[2].equalsIgnoreCase("coinlocation")) {
                     if (args.length < 9) {
+                        if (args.length == 6
+                                && args[3].equalsIgnoreCase("add")
+                                && args[4].equalsIgnoreCase("here")) {
+                            if (!(sender instanceof Player p)) {
+                                sender.sendMessage("Only players can use 'here'");
+                                return true;
+                            }
+                            List<Map<String, Object>> currentCoinLocations =
+                                    plugin.configLoader.getCoinLocations(gameName);
+                            Location pLoc = p.getLocation();
+                            Map<String, Object> newCoinLoc = new LinkedHashMap<>();
+                            newCoinLoc.put("x", Math.round(pLoc.getX() * 10) / 10.0);
+                            newCoinLoc.put("y", Math.round(pLoc.getY() * 10) / 10.0);
+                            newCoinLoc.put("z", Math.round(pLoc.getZ() * 10) / 10.0);
+                            newCoinLoc.put("r", Integer.parseInt(args[5]));
+                            currentCoinLocations.add(newCoinLoc);
+                            plugin.configLoader.set(
+                                    gameName + ".coinlocations", currentCoinLocations);
+                            return true;
+                        }
                         sender.sendMessage(
                                 "Usage: /mm edit <game> coinlocation "
                                         + args[3]
@@ -157,7 +199,7 @@ public class MMCommand implements CommandExecutor {
                     double r = Double.parseDouble(args[7]);
 
                     List<Map<String, Object>> currentCoinLocations =
-                            plugin.configLoader.getSpawnLocations(gameName);
+                            plugin.configLoader.getCoinLocations(gameName);
                     Map<String, Object> newCoinLoc = new LinkedHashMap<>();
                     newCoinLoc.put("x", x);
                     newCoinLoc.put("y", y);
@@ -229,12 +271,14 @@ public class MMCommand implements CommandExecutor {
                                             .map(Vector::getX)
                                             .map(Object::toString)
                                             .toList());
+                            finalList.add("here");
                         } else if (args[2].equalsIgnoreCase("coinlocation")) {
                             finalList.addAll(
                                     plugin.getGame(args[1]).getCoinLocations().keySet().stream()
                                             .map(Vector::getX)
                                             .map(Object::toString)
                                             .toList());
+                            finalList.add("here");
                         }
                     }
                 } else if (args.length == 6) {
