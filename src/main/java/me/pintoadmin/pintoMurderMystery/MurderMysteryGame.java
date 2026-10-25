@@ -239,8 +239,6 @@ public final class MurderMysteryGame {
         }
         world.setTime(timeOfDay);
 
-        sidebar.setDisplaySlot(DisplaySlot.SIDEBAR);
-
         // Teleport all players to a random entry in a config list
         List<Player> playingPlayers =
                 playerStates.keySet().stream()
@@ -372,6 +370,7 @@ public final class MurderMysteryGame {
                                     player.getInventory().addItem(new ItemStack(Material.ARROW));
                                 }
                             }
+                            sidebar.setDisplaySlot(DisplaySlot.SIDEBAR);
                             updateScoreboards();
                             world.setGameRule(GameRule.PVP, true);
                             this.cancel();
@@ -711,12 +710,12 @@ public final class MurderMysteryGame {
     }
 
     private void updateScoreboards() {
-        for (int i = 0; i <= maxPlayers; i++)
-            scoreboard.resetScores(
-                    ChatColor.YELLOW
-                            + "Living Players: "
-                            + ChatColor.LIGHT_PURPLE
-                            + (getPlayingPlayers().size() + i));
+        for (String entry : scoreboard.getEntries()) {
+            Score score = sidebar.getScore(entry);
+            if (entry.contains("Living Players:") && score.getScore() == -1)
+                scoreboard.resetScores(entry);
+        }
+
         sidebar.getScore(
                         ChatColor.YELLOW
                                 + "Living Players: "
