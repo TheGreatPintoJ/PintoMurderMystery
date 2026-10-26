@@ -314,9 +314,19 @@ public class MMCommand implements CommandExecutor {
             allEditOptions.addAll(intEditOptions);
             allEditOptions.addAll(otherEditOptions);
 
-            List<String> gameruleStrings =
-                    new ArrayList<>(
-                            Arrays.stream(GameRule.values()).map(GameRule::getName).toList());
+            List<String> gameruleStrings = new ArrayList<>();
+            for (Object rule :
+                    Registry.GAME_RULE) { // Object, not GameRule: no checkcast, no invokeinterface
+                String ruleName =
+                        rule.toString(); // Object.toString(): same bytecode on both servers
+                try {
+                    Object type = GameRule.class.getMethod("getType").invoke(rule);
+                    if (type != Boolean.class) continue;
+                } catch (ReflectiveOperationException e) {
+                    continue;
+                }
+                gameruleStrings.add(ruleName);
+            }
 
             try {
                 if (args.length == 1) {
