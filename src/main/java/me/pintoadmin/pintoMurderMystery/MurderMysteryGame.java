@@ -33,7 +33,7 @@ public final class MurderMysteryGame {
     private final FileConfiguration configFile;
     private final ConfigurationSection config;
     private final String name;
-    private final World world;
+    final World world;
     private final boolean isolatePlayerlists;
     private final Scoreboard scoreboard;
     private final Objective sidebar;
@@ -72,8 +72,8 @@ public final class MurderMysteryGame {
     private int gracePeriod;
     private int murderers;
     private int sheriffs;
-    private int maxPlayers;
-    private int minPlayers;
+    int maxPlayers;
+    int minPlayers;
     private int coinsToBow;
     private boolean bowInstaShoot;
     private boolean deathWater;
@@ -618,7 +618,8 @@ public final class MurderMysteryGame {
                                     bossBar.setProgress((double) countdown / 20);
                                     countdown--;
                                 } else {
-                                    playingPlayers.forEach(bossBar::removePlayer);
+                                    bossBar.removeAll();
+                                    bossBar.setVisible(false);
                                     start();
                                     this.cancel();
                                 }

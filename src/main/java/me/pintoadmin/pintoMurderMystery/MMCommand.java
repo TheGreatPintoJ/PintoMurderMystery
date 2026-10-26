@@ -85,6 +85,85 @@ public class MMCommand implements CommandExecutor {
             }
             // add game
             plugin.configLoader.newGame(args[1]);
+        } else if (args[0].equalsIgnoreCase("start")) {
+            MurderMysteryGame game;
+            if (args.length == 1) {
+                if (!(sender instanceof Player p)) {
+                    sender.sendMessage("Specify a game");
+                    return true;
+                }
+                String name = p.getWorld().getName();
+                game = plugin.getGame(name);
+            } else if (args.length == 2) {
+                game = plugin.getGame(args[1]);
+            } else {
+                sender.sendMessage("Specify a game");
+                return true;
+            }
+            if (game.world.getPlayers().size() >= game.minPlayers) game.start();
+            else
+                sender.sendMessage("Not enough players in game: " + game.world.getPlayers().size());
+            return true;
+        } else if (args[0].equalsIgnoreCase("end")) {
+            MurderMysteryGame game;
+            if (args.length == 1) {
+                if (!(sender instanceof Player p)) {
+                    sender.sendMessage("Specify a game");
+                    return true;
+                }
+                String name = p.getWorld().getName();
+                game = plugin.getGame(name);
+            } else if (args.length == 2) {
+                game = plugin.getGame(args[1]);
+            } else {
+                sender.sendMessage("Specify a game");
+                return true;
+            }
+            game.end(true);
+            return true;
+        } else if (args[0].equalsIgnoreCase("join")) {
+            MurderMysteryGame game = plugin.getGame(args[1]);
+            if (args.length == 2) {
+                if (!(sender instanceof Player p)) {
+                    sender.sendMessage("Specify a player");
+                    return true;
+                }
+                World targetWorld = game.world;
+                p.teleport(targetWorld.getSpawnLocation());
+            } else if (args.length == 3) {
+                World targetWorld = game.world;
+                Player p = Bukkit.getPlayerExact(args[2]);
+                if (p == null) {
+                    sender.sendMessage("Invalid player or not online: " + args[2]);
+                    return true;
+                }
+                p.teleport(targetWorld.getSpawnLocation());
+            } else {
+                sender.sendMessage("Specify a game");
+                return true;
+            }
+            return true;
+        } else if (args[0].equalsIgnoreCase("leave")) {
+            if (args.length == 2) {
+                if (!(sender instanceof Player p)) {
+                    sender.sendMessage("Specify a player");
+                    return true;
+                }
+                World world = Bukkit.getWorlds().getFirst();
+                p.teleport(world.getSpawnLocation());
+            } else if (args.length == 3) {
+                World world = Bukkit.getWorlds().getFirst();
+                Player p = Bukkit.getPlayerExact(args[2]);
+                if (p == null) {
+                    sender.sendMessage("Invalid player or not online: " + args[2]);
+                    return true;
+                }
+                p.teleport(world.getSpawnLocation());
+            } else {
+                sender.sendMessage("Specify a game");
+                return true;
+            }
+            return true;
         } else if (args[0].equalsIgnoreCase("edit")) {
             if (args.length < 4) {
                 sender.sendMessage("Usage: /mm edit <game> <option> <value>");
@@ -217,7 +296,7 @@ public class MMCommand implements CommandExecutor {
                 }
             }
         }
-        return false;
+        return true;
     }
 
     private class MMCommandCompleter implements TabCompleter {
@@ -225,7 +304,6 @@ public class MMCommand implements CommandExecutor {
         public List<String> onTabComplete(
                 CommandSender sender, Command command, String label, String[] args) {
             List<String> finalList = new ArrayList<>();
-            List<String> allGames = plugin.configLoader.getAllGames();
             List<String> allEditOptions = new ArrayList<>(boolEditOptions);
             allEditOptions.addAll(intEditOptions);
             allEditOptions.addAll(otherEditOptions);
@@ -236,7 +314,10 @@ public class MMCommand implements CommandExecutor {
 
             try {
                 if (args.length == 1) {
-                    finalList.addAll(List.of("reload", "edit", "remove", "new"));
+                    finalList.addAll(
+                            List.of(
+                                    "reload", "edit", "remove", "new", "start", "join", "leave",
+                                    "end", "list"));
                 } else if (args.length == 2) {
                     if (!args[0].equalsIgnoreCase("reload")) {
                         finalList.addAll(plugin.configLoader.getAllGames());
