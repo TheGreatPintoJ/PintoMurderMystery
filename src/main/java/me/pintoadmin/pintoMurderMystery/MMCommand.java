@@ -64,7 +64,7 @@ public class MMCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if(args.length == 0) {
+        if (args.length == 0) {
             sender.sendMessage("Try again. (Hint - tabcompletion is there for a reason");
             return true;
         }
@@ -323,7 +323,7 @@ public class MMCommand implements CommandExecutor {
                     finalList.addAll(
                             List.of(
                                     "reload", "edit", "remove", "new", "start", "join", "leave",
-                                    "end", "list"));
+                                    "end"));
                 } else if (args.length == 2) {
                     if (!args[0].equalsIgnoreCase("reload")) {
                         finalList.addAll(plugin.configLoader.getAllGames());

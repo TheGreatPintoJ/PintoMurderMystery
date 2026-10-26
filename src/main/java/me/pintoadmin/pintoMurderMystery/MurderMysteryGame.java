@@ -219,7 +219,7 @@ public final class MurderMysteryGame {
     }
 
     public void start() {
-        if(playing) return;
+        if (playing) return;
         playing = true;
         world.setGameRule(GameRule.PVP, false);
         world.setGameRule(GameRule.IMMEDIATE_RESPAWN, true);
@@ -282,6 +282,7 @@ public final class MurderMysteryGame {
                 new BukkitRunnable() {
                     int countdown = gracePeriod;
                     final List<Player> playingPlayers = getPlayingPlayers();
+
                     @Override
                     public void run() {
                         if (countdown > 0) {
@@ -300,7 +301,8 @@ public final class MurderMysteryGame {
                             List<Player> availablePlayers = new ArrayList<>(playingPlayers);
                             for (int i = 0; i < murderers; i++) {
                                 Player randPlayer =
-                                        availablePlayers.get(random.nextInt(availablePlayers.size()));
+                                        availablePlayers.get(
+                                                random.nextInt(availablePlayers.size()));
                                 playerRoles.put(randPlayer, PlayerRole.MURDERER);
                                 availablePlayers.remove(randPlayer);
                             }
@@ -484,7 +486,7 @@ public final class MurderMysteryGame {
     }
 
     public void end(boolean force) {
-        if(ended) return;
+        if (ended) return;
         playing = false;
         ended = true;
         // Reveal murderers
@@ -597,7 +599,7 @@ public final class MurderMysteryGame {
             // Check if game full -> start game
             List<Player> playingPlayers = getPlayingPlayers();
             if (playingPlayers.size() >= maxPlayers) start();
-            else if (playingPlayers.size() >= minPlayers){
+            else if (playingPlayers.size() >= minPlayers) {
                 startGameTask.cancel();
                 startGameTask =
                         new BukkitRunnable() {
