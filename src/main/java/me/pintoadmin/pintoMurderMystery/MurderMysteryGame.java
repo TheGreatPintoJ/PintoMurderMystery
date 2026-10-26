@@ -219,6 +219,7 @@ public final class MurderMysteryGame {
     }
 
     public void start() {
+        if(playing) return;
         playing = true;
         world.setGameRule(GameRule.PVP, false);
         world.setGameRule(GameRule.IMMEDIATE_RESPAWN, true);
@@ -240,10 +241,7 @@ public final class MurderMysteryGame {
         world.setTime(timeOfDay);
 
         // Teleport all players to a random entry in a config list
-        List<Player> playingPlayers =
-                playerStates.keySet().stream()
-                        .filter(u -> playerStates.get(u) == PlayerState.PLAYING)
-                        .toList();
+        List<Player> playingPlayers = getPlayingPlayers();
         Map.Entry<Vector, Double[]>[] possibleLocations =
                 spawnLocations.entrySet().toArray(new Map.Entry[0]);
         for (Player player : playingPlayers) {
@@ -278,13 +276,12 @@ public final class MurderMysteryGame {
             // Teleport player
             player.teleport(loc);
             innocentTeam.addEntry(player.getName());
-            player.getActivePotionEffects().clear();
         }
         // Wait 15-20s (configurable)
         runningTasks.add(
                 new BukkitRunnable() {
                     int countdown = gracePeriod;
-
+                    final List<Player> playingPlayers = getPlayingPlayers();
                     @Override
                     public void run() {
                         if (countdown > 0) {
@@ -303,7 +300,7 @@ public final class MurderMysteryGame {
                             List<Player> availablePlayers = new ArrayList<>(playingPlayers);
                             for (int i = 0; i < murderers; i++) {
                                 Player randPlayer =
-                                        playingPlayers.get(random.nextInt(playingPlayers.size()));
+                                        availablePlayers.get(random.nextInt(availablePlayers.size()));
                                 playerRoles.put(randPlayer, PlayerRole.MURDERER);
                                 availablePlayers.remove(randPlayer);
                             }
@@ -487,6 +484,7 @@ public final class MurderMysteryGame {
     }
 
     public void end(boolean force) {
+        if(ended) return;
         playing = false;
         ended = true;
         // Reveal murderers
@@ -544,6 +542,7 @@ public final class MurderMysteryGame {
                         knifeEntities.forEach(ItemDisplay::remove);
                         knifeEntities.clear();
                         coinTask.cancel();
+                        startGameTask.cancel();
                         coinEntities.forEach(Item::remove);
                         coinEntities.clear();
                         shotArrows.forEach(Arrow::remove);
@@ -551,14 +550,13 @@ public final class MurderMysteryGame {
                         deadBodies.forEach(Mannequin::remove);
                         deadBodies.clear();
 
+                        runningTasks.forEach(BukkitTask::cancel);
+
                         murdererTeam.setColor(ChatColor.WHITE);
 
-                        // remove all revolver item entities
+                        // remove all item entities
                         world.getEntities().stream()
-                                .filter(
-                                        e ->
-                                                e instanceof Item i
-                                                        && i.getItemStack() == revolverLoaded)
+                                .filter(e -> e instanceof Item)
                                 .forEach(Entity::remove);
 
                         for (Player player : world.getPlayers()) {
@@ -568,6 +566,8 @@ public final class MurderMysteryGame {
                             player.setGameMode(GameMode.SURVIVAL);
                             player.getInventory().clear();
                             if (endLocation.getWorld() == world && !force) join(player);
+                            else if (endLocation.getWorld() == world && force)
+                                playerStates.put(player, PlayerState.PLAYING);
                         }
                         playerRoles.clear();
                         ended = false;
@@ -597,7 +597,8 @@ public final class MurderMysteryGame {
             // Check if game full -> start game
             List<Player> playingPlayers = getPlayingPlayers();
             if (playingPlayers.size() >= maxPlayers) start();
-            else if (playingPlayers.size() >= minPlayers)
+            else if (playingPlayers.size() >= minPlayers){
+                startGameTask.cancel();
                 startGameTask =
                         new BukkitRunnable() {
                             int countdown = 20;
@@ -610,7 +611,7 @@ public final class MurderMysteryGame {
                                 List<Player> playingPlayers = getPlayingPlayers();
                                 playingPlayers.forEach(bossBar::addPlayer);
                                 if (playingPlayers.size() >= maxPlayers) {
-                                    playingPlayers.forEach(bossBar::removePlayer);
+                                    bossBar.removeAll();
                                     this.cancel();
                                     return;
                                 }
@@ -625,16 +626,17 @@ public final class MurderMysteryGame {
                                 }
                             }
                         }.runTaskTimer(plugin, 0L, 20L);
+            }
         }
         // if so add as spec
-        else playerStates.put(player, PlayerState.SPECTATING);
+        else {
+            playerStates.put(player, PlayerState.SPECTATING);
+            player.setGameMode(GameMode.SPECTATOR);
+        }
         player.setScoreboard(scoreboard);
     }
 
     public void leave(Player player, World toWorld) {
-        // remove player from game
-        playerStates.remove(player);
-        playerRoles.remove(player);
         player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
         // Show/hide players (isolatedplayerlist)
 
@@ -659,8 +661,23 @@ public final class MurderMysteryGame {
                                             playerRoles.get(p) == PlayerRole.MURDERER
                                                     && playerStates.get(p) == PlayerState.PLAYING)
                             .toList();
+            List<Player> playingInnocents =
+                    playerRoles.keySet().stream()
+                            .filter(
+                                    p ->
+                                            playerRoles.get(p) != PlayerRole.MURDERER
+                                                    && playerStates.get(p) == PlayerState.PLAYING)
+                            .toList();
             if (playingMurderers.isEmpty()) end(false);
+            else if (playingInnocents.isEmpty()) end(false);
         }
+        // remove player from game
+        playerStates.remove(player);
+        playerRoles.remove(player);
+        player.setPlayerListHeaderFooter(null, null);
+        player.setExp(0);
+        player.setLevel(0);
+        player.getInventory().clear();
     }
 
     public void onDeath(Player player, PlayerDeathEvent event) {
@@ -723,7 +740,7 @@ public final class MurderMysteryGame {
                                 + ChatColor.LIGHT_PURPLE
                                 + getPlayingPlayers().size())
                 .setScore(-1);
-        for (Player p : getPlayingPlayers()) {
+        for (Player p : world.getPlayers()) {
             String roleString =
                     playerStates.get(p) == PlayerState.SPECTATING
                             ? ChatColor.WHITE + "SPECTATOR"
@@ -810,7 +827,7 @@ public final class MurderMysteryGame {
                     public void run() {
                         if (!knifeEntity.getLocation().getBlock().getType().isAir())
                             knifeEntity.remove();
-                        List<Entity> nearEntities = knifeEntity.getNearbyEntities(1, 1, 0.3);
+                        List<Entity> nearEntities = knifeEntity.getNearbyEntities(0.5, 0.5, 0.5);
                         nearEntities.stream()
                                 .filter(e -> e instanceof LivingEntity)
                                 .forEach(

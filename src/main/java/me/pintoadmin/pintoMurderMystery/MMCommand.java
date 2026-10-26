@@ -64,6 +64,10 @@ public class MMCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if(args.length == 0) {
+            sender.sendMessage("Try again. (Hint - tabcompletion is there for a reason");
+            return true;
+        }
         if (args[0].equalsIgnoreCase("reload")) {
             plugin.reload();
         } else if (args[0].equalsIgnoreCase("remove")) {
@@ -122,8 +126,9 @@ public class MMCommand implements CommandExecutor {
             game.end(true);
             return true;
         } else if (args[0].equalsIgnoreCase("join")) {
-            MurderMysteryGame game = plugin.getGame(args[1]);
+            MurderMysteryGame game;
             if (args.length == 2) {
+                game = plugin.getGame(args[1]);
                 if (!(sender instanceof Player p)) {
                     sender.sendMessage("Specify a player");
                     return true;
@@ -131,6 +136,7 @@ public class MMCommand implements CommandExecutor {
                 World targetWorld = game.world;
                 p.teleport(targetWorld.getSpawnLocation());
             } else if (args.length == 3) {
+                game = plugin.getGame(args[1]);
                 World targetWorld = game.world;
                 Player p = Bukkit.getPlayerExact(args[2]);
                 if (p == null) {
@@ -176,10 +182,10 @@ public class MMCommand implements CommandExecutor {
                 // set config value to args[3]
                 Object parsed =
                         boolEditOptions.contains(args[2])
-                                ? Boolean.parseBoolean(args[2])
+                                ? Boolean.parseBoolean(args[3])
                                 : intEditOptions.contains(args[2])
                                         ? Integer.parseInt(args[3])
-                                        : args[2];
+                                        : args[3];
                 plugin.configLoader.set(gameName + "." + args[2], parsed);
             } else {
                 if (args[2].equalsIgnoreCase("gamerule")) {
@@ -245,7 +251,7 @@ public class MMCommand implements CommandExecutor {
                     }
                     plugin.configLoader.set(gameName + ".spawnlocations", currentSpawnLocations);
                 } else if (args[2].equalsIgnoreCase("coinlocation")) {
-                    if (args.length < 9) {
+                    if (args.length < 8) {
                         if (args.length == 6
                                 && args[3].equalsIgnoreCase("add")
                                 && args[4].equalsIgnoreCase("here")) {
@@ -275,7 +281,7 @@ public class MMCommand implements CommandExecutor {
                     double x = Double.parseDouble(args[4]);
                     double y = Double.parseDouble(args[5]);
                     double z = Double.parseDouble(args[6]);
-                    double r = Double.parseDouble(args[7]);
+                    double r = Integer.parseInt(args[7]);
 
                     List<Map<String, Object>> currentCoinLocations =
                             plugin.configLoader.getCoinLocations(gameName);
