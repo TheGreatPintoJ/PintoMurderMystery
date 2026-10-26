@@ -33,9 +33,7 @@ Works on spigot servers MC26.3 (including forks - paper, purpur, etc.)
 - When you join any world in config, you will be automatically added to the game.
 - Game will start instantly when maxplayers are joined, or after 20s with minplayers online (configurable)
 
-## License
-
-This project is licensed under the MIT License.
+## [License](./LICENSE)
 
 ---
 
